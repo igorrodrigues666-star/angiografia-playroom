@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Projeções Angiográficas</title>
 <meta name="description" content="Simulador educativo de projeções angiográficas coronárias e cerebrais: modelo 3D, angiograma simulado, mapa de encurtamento e arco em C.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0f13'/%3E%3Cpath d='M16 26C6 19 6 10 11 8c3-1 5 1 5 3 0-2 2-4 5-3 5 2 5 11-5 18z' fill='%23f0ad32'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2306101d'/%3E%3Cpath d='M16 26C6 19 6 10 11 8c3-1 5 1 5 3 0-2 2-4 5-3 5 2 5 11-5 18z' fill='%234da3ff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&family=Martian+Mono:wght@400;500;600&display=swap">
@@ -13,10 +13,11 @@
 html{-webkit-text-size-adjust:100%}body{margin:0}[hidden]{display:none!important}
 /* Layout: consola de angiografia — modelo 3D | angiograma | comandos do arco; coluna única no telemóvel com o angiograma primeiro */
 :root{
-  --bg:#0b0f13; --panel:#11171d; --panel-2:#161e26; --line:#212b35; --line-2:#2d3945;
-  --fg:#d8e0e7; --muted:#7e8d9b; --faint:#536170;
-  --accent:#f0ad32; --accent-ink:#1b1305; --accent-soft:rgba(240,173,50,.14);
-  --lca:#ee7e66; --rca:#58c3d4; --eca:#b39cf0;
+  --bg:#06101d; --panel:#0b1828; --panel-2:#102236; --line:#18304a; --line-2:#22405f;
+  --deep:#040c17; --well:#071424;
+  --fg:#dbe8f6; --muted:#7f9ab8; --faint:#526d8c;
+  --accent:#4da3ff; --accent-ink:#03111f; --accent-soft:rgba(77,163,255,.15);
+  --lca:#f08a6c; --rca:#3fd0b0; --eca:#b9a3f5;
   --good:#5cc68a; --warn:#e6b84a; --bad:#df6557;
   --f-ui:"Archivo","Helvetica Neue",Arial,sans-serif;
   --f-mono:"Martian Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
@@ -60,25 +61,25 @@ button{font:inherit;color:inherit}
 .play:hover{color:var(--accent-ink);filter:brightness(1.08)}
 
 /* angiograma */
-.angio-wrap{position:relative;padding:10px;background:#07090b}
+.angio-wrap{position:relative;padding:10px;background:var(--deep)}
 .angio-box{position:relative;aspect-ratio:1/1;width:100%;max-width:100%;border-radius:3px;overflow:hidden;background:#9c9c99}
 #angio{display:block;width:100%;height:100%;touch-action:manipulation;cursor:crosshair}
 .ov{position:absolute;font-family:var(--f-mono);font-size:11px;color:#f4f4f2;text-shadow:0 0 3px #000,0 0 1px #000;pointer-events:none;line-height:1.35}
 .ov.tl{top:8px;left:10px}.ov.tr{top:8px;right:10px;text-align:right}.ov.bl{bottom:8px;left:10px}
-#tip{position:absolute;pointer-events:none;background:rgba(10,13,16,.92);border:1px solid var(--accent);color:var(--fg);font-family:var(--f-mono);font-size:11px;padding:3px 7px;border-radius:3px;white-space:nowrap;transform:translate(-50%,calc(-100% - 12px))}
+#tip{position:absolute;pointer-events:none;background:rgba(4,12,23,.92);border:1px solid var(--accent);color:var(--fg);font-family:var(--f-mono);font-size:11px;padding:3px 7px;border-radius:3px;white-space:nowrap;transform:translate(-50%,calc(-100% - 12px))}
 
 /* comandos */
 .ctrl-body{padding:12px;display:flex;flex-direction:column;gap:14px}
 .read{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.read div{background:#07090b;border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+.read div{background:var(--deep);border:1px solid var(--line);border-radius:4px;padding:8px 10px}
 .read b{display:block;font-family:var(--f-mono);font-weight:500;font-size:clamp(18px,2.2vw,24px);color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .sl{display:flex;flex-direction:column;gap:4px}
 .sl .ends{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:9.5px;color:var(--faint)}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0}
 input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--line-2),var(--line) 50%,var(--line-2));border:1px solid var(--line-2)}
 input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--line);border:1px solid var(--line-2)}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:24px;border-radius:3px;background:var(--accent);margin-top:-10px;border:2px solid #07090b}
-input[type=range]::-moz-range-thumb{width:12px;height:22px;border-radius:3px;background:var(--accent);border:2px solid #07090b}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:24px;border-radius:3px;background:var(--accent);margin-top:-10px;border:2px solid var(--deep)}
+input[type=range]::-moz-range-thumb{width:12px;height:22px;border-radius:3px;background:var(--accent);border:2px solid var(--deep)}
 .presets{display:flex;flex-direction:column;gap:6px}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:5px}
 .pre{text-align:left;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;cursor:pointer;color:var(--fg)}
@@ -90,12 +91,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:22px;border-radius:3px;bac
 .hint{font-size:12px;color:var(--muted);margin:0}
 
 /* 3D */
-.stage{position:relative;flex:1;min-height:380px;overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,#141c24,#0a0e12)}
+.stage{position:relative;flex:1;min-height:380px;overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,#11253d,#050d18)}
 .stage canvas{display:block;position:absolute;inset:0;width:100%;height:100%}
-.lbl3{position:absolute;transform:translate(-50%,-50%);font-family:var(--f-mono);font-size:10px;padding:1px 5px;border-radius:2px;background:rgba(7,9,11,.78);pointer-events:none;white-space:nowrap}
+.lbl3{position:absolute;transform:translate(-50%,-50%);font-family:var(--f-mono);font-size:10px;padding:1px 5px;border-radius:2px;background:rgba(4,12,23,.8);pointer-events:none;white-space:nowrap}
 .lbl3.L,.lbl3.ant{color:var(--lca)}.lbl3.R,.lbl3.post{color:var(--rca)}.lbl3.ext{color:var(--eca)}.lbl3.N{color:var(--muted)}
 .orient{position:absolute;left:10px;bottom:10px;font-family:var(--f-mono);font-size:10px;color:var(--faint);pointer-events:none}
-.room{position:relative;aspect-ratio:4/3;max-width:100%;background:radial-gradient(100% 90% at 50% 30%,#151d25,#0a0e12);overflow:hidden}
+.room{position:relative;aspect-ratio:4/3;max-width:100%;background:radial-gradient(100% 90% at 50% 30%,#11253d,#050d18);overflow:hidden}
 .room canvas{display:block;position:absolute;inset:0;width:100%;height:100%}
 
 /* mapa */
@@ -116,7 +117,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:22px;border-radius:3px;bac
 .chip.L i,.chip.ant i{color:var(--lca)}.chip.R i,.chip.post i{color:var(--rca)}.chip.ext i{color:var(--eca)}
 .chip:hover{border-color:var(--faint)}
 .chip.on{border-color:var(--accent);background:var(--accent-soft)}
-.info{background:#0a0e12;border:1px solid var(--line);border-radius:5px;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.info{background:var(--well);border:1px solid var(--line);border-radius:5px;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .ih{display:flex;gap:12px;align-items:center}
 .inum{font-family:var(--f-mono);font-size:22px;font-weight:600;color:var(--accent);min-width:2.4ch}
 .iname{font-weight:650;font-size:16px;font-stretch:92%;text-wrap:balance}
@@ -271,7 +272,16 @@ function rprof(h){
 }
 const center=h=>W.clone().multiplyScalar(h*HL);
 const radial=th=>E1.clone().multiplyScalar(Math.cos(th*DEG)).add(E2.clone().multiplyScalar(Math.sin(th*DEG)));
-function surf(h,th,k=1,lift=0.16){return center(h).add(radial(th).multiplyScalar(rprof(h)*k+(k>=1?lift:0)));}
+// forma do coração: VE mais volumoso e sulcos interventricular e auriculoventricular onde correm as coronárias
+const angd=(a,b)=>{let d=((a-b)%360+540)%360-180;return d;};
+const sstep=(x,a,b)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
+function shapeK(h,th){
+  const lv=0.055*Math.cos((th-150)*DEG)*sstep(h,0,.25);
+  const iv=-0.05*(Math.exp(-1*(angd(th,50)/13)**2)+Math.exp(-1*(angd(th,254)/13)**2))*sstep(h,.06,.16);
+  const av=-0.045*Math.exp(-1*((h-0.04)/0.045)**2);
+  return 1+lv+iv+av;
+}
+function surf(h,th,k=1,lift=0.16){return center(h).add(radial(th).multiplyScalar(rprof(h)*shapeK(h,th)*k+(k>=1?lift:0)));}
 const P=s=>s instanceof V3?s.clone():surf(s[0],s[1],s[2]===undefined?1:s[2]);
 
 const AO=surf(-0.16,35,0.7,0);
@@ -502,8 +512,22 @@ function catheterCurves(){
 let M=null;
 function resolveT(v,t){
   if(typeof t==='number')return t; if(t==='end')return 1;
-  const idx=parseFloat(t.slice(1)), L=v.curve.getLengths((v.n-1)*8);
+  const idx=parseFloat(t.slice(1)), L=(v.curve0||v.curve).getLengths((v.n-1)*8);
   return L[Math.round(idx*8)]/L[L.length-1];
+}
+// tortuosidade suave das coronárias epicárdicas (determinística por vaso)
+function wavy(v){
+  const c=v.curve,L=c.getLength();if(L<2.2)return c;
+  let sd=0;for(const ch of v.id)sd=(sd*31+ch.charCodeAt(0))%9973;
+  const rnd=k=>{const x=Math.sin(sd*12.9898+k*78.233)*43758.5453;return x-Math.floor(x);};
+  const rm=(v.r[0]+v.r[1])/2,A=Math.min(.2,.05+.6*rm),l1=2.1+rnd(1)*1.2,l2=0.9+rnd(2)*.5,f1=rnd(3)*6.28,f2=rnd(4)*6.28;
+  const N=Math.max(10,Math.ceil(L/0.22)),pts=[];
+  for(let i=0;i<=N;i++){const t=i/N,s=t*L,p=c.getPointAt(t);
+    if(i===0){pts.push(p);continue;}
+    const T=c.getTangentAt(t),o=p.clone().sub(W.clone().multiplyScalar(p.dot(W))).normalize(),lat=new V3().crossVectors(T,o).normalize();
+    const amp=A*Math.min(1,s/0.9)**2*(0.7*Math.sin(6.2832*s/l1+f1)+0.3*Math.sin(6.2832*s/l2+f2));
+    pts.push(p.add(lat.multiplyScalar(amp)));}
+  return new THREE.CatmullRomCurve3(pts,false,'centripetal');
 }
 const rAt=(v,t)=>v.r[0]+(v.r[1]-v.r[0])*t;
 function segAt(v,t){ if(!v.segs) return null; for(const s of v.segs) if(t>=s[0]-1e-6&&t<=s[1]+1e-6) return s[2]; return null; }
@@ -519,6 +543,7 @@ function build(){
     v.curve=new THREE.CatmullRomCurve3(pts,false,'centripetal');
     v.len=v.curve.getLength();
     if(v.segs)v.segs=v.segs.map(s=>[resolveT(v,s[0]),resolveT(v,s[1]),s[2]]);
+    if(S.mode==='cardio'&&v.id!=='LM'&&!/^S\d/.test(v.id)){v.curve0=v.curve;v.curve=wavy(v);v.len=v.curve.getLength();}
     v.retro=!!(v.fill&&typeof v.fill==='object');
     v.t0=v.fill===true?0:v.retro?resolveT(v,v.fill.retro):2;
     if(v.retro)v.base=distAt(by[v.fill.base],1);
@@ -574,11 +599,23 @@ const CHEST={cx:0.6,cz:0.5,rx:13.5,rz:10.5};
 const ANAT={verts:[],ribs:[],domeL:[],domeR:[],heart:[],great:[]};
 (function(){
   for(let y=-13;y<=13;y+=2.35){const c=[];for(const dx of[-1.6,1.6])for(const dy of[-.9,.9])for(const dz of[-1.5,1.5])c.push(new V3(dx,y+dy,-8.6+dz));ANAT.verts.push(c);}
-  for(let i=0;i<10;i++){
-    const y0=11.5-i*2.55, sc=.62+.38*Math.min(1,i/4);
-    for(const sd of[-1,1]){const pts=[];for(let k=0;k<=24;k++){const ph=(8+k/24*142)*DEG;
-      pts.push(new V3(sd*CHEST.rx*sc*Math.sin(ph),y0-4.2*(k/24)**1.3,CHEST.cz-CHEST.rz*Math.cos(ph)*(.75+.25*sc)));}
-      ANAT.ribs.push(pts);}
+  // 12 pares de costelas: cabeça na vértebra, ângulo posterior, arco lateral e extremidade anterior; cartilagens até ao esterno
+  const RIBU=[[.30,-1.0],[.55,-.95],[.80,-.73],[.96,-.36],[1.0,.05],[.93,.42],[.76,.70],[.55,.88]];
+  const STY=[11.2,9.5,8.0,6.5,5.0,3.4,1.7], MARG=[[2.3,-1.2,9.7],[3.6,-3.2,9.1],[4.9,-5.2,8.2]];
+  ANAT.cart=[];
+  for(let i=0;i<12;i++){
+    const y0=12.2-i*2.15, sc=(.55+.45*Math.sin(Math.min(1,(i+.6)/7)*Math.PI/2))*(1-.045*Math.max(0,i-8));
+    const nEnd=i>=11?4:i>=10?5:i>=7?7:8, drop=3.2+.12*i;
+    for(const sd of[-1,1]){
+      const ctrl=[new V3(sd*1.45,y0+.15,-8.35),new V3(sd*2.5,y0,-9.55)];
+      RIBU.slice(0,nEnd).forEach(([u,w],k)=>{const s=(k+1)/8;ctrl.push(new V3(sd*CHEST.rx*sc*u,y0-drop*s**1.3,CHEST.cz+CHEST.rz*w*(.75+.25*sc)));});
+      const c=new THREE.CatmullRomCurve3(ctrl,false,'centripetal'),pts=[];for(let k=0;k<=30;k++)pts.push(c.getPointAt(k/30));
+      ANAT.ribs.push(pts);
+      if(i<10){const E=ctrl[ctrl.length-1];let T;
+        if(i<7)T=new V3(sd*.95,STY[i],CHEST.cz+CHEST.rz*.95-.2);else{const m=MARG[i-7];T=new V3(sd*m[0],m[1],m[2]);}
+        const Mid=E.clone().lerp(T,.5);Mid.y=E.y+(T.y-E.y)*.3;Mid.z+=.5;
+        ANAT.cart.push([E,Mid,T]);}
+    }
   }
   const dome=(c,r,arr)=>{for(let a=0;a<360;a+=20)for(let e=0;e<=90;e+=15){const A=a*DEG,E=e*DEG;arr.push(new V3(c.x+r.x*Math.cos(E)*Math.cos(A),c.y+r.y*Math.sin(E),c.z+r.z*Math.cos(E)*Math.sin(A)));}
     arr.push(new V3(c.x-r.x,c.y-12,c.z),new V3(c.x+r.x,c.y-12,c.z));};
@@ -589,21 +626,30 @@ const ANAT={verts:[],ribs:[],domeL:[],domeR:[],heart:[],great:[]};
 /* ---------- anatomia de fundo: crânio ---------- */
 const SKC=v3(0,2.0,-0.6), SKR=[7.1,7.9,9.3];
 const VERT_Y=[-4.6,-6.4,-8.2,-9.9,-11.6,-13.3];
+// forma do crânio a partir de uma direção unitária: fronte mais estreita, occipital saliente, fossas temporais
+function skullDir(ux,uy,uz){
+  const fr=Math.max(0,uz),bk=Math.max(0,-uz);
+  const sx=(1-.13*fr*fr+.03*bk)*(1-.07*Math.exp(-1*((uy+.05)/.4)**2)*Math.abs(ux));
+  const sz=1-.15*fr*fr*(1-.4*Math.max(0,uy))+.05*bk*(1-Math.abs(uy));
+  const sy=1+.04*Math.max(0,uy)*bk;
+  return v3(SKC.x+SKR[0]*ux*sx,SKC.y+SKR[1]*uy*sy,SKC.z+SKR[2]*uz*sz);
+}
 const NEU=(function(){
   const o={vault:[],inner:[],face:[],orbits:[],petrous:[],petHull:[],mand:[],verts:[],fm:[],
     clivus:[v3(0,0.0,-0.95),v3(0,-3.7,-3.0)],dorsum:[v3(-0.6,0.7,-0.8),v3(0.6,0.7,-0.8),v3(0.6,-0.3,-0.95),v3(-0.6,-0.3,-0.95)]};
   const cut=z=>z>3?-1.2:z>-2?-2.8:-3.6;
   for(let a=0;a<360;a+=10)for(let e=-80;e<=90;e+=10){const A=a*DEG,E=e*DEG;
-    const p=v3(SKC.x+SKR[0]*Math.cos(E)*Math.cos(A),SKC.y+SKR[1]*Math.sin(E),SKC.z+SKR[2]*Math.cos(E)*Math.sin(A));
+    const p=skullDir(Math.cos(E)*Math.cos(A),Math.sin(E),Math.cos(E)*Math.sin(A));
     if(p.y>=cut(p.z)){o.vault.push(p);o.inner.push(p.clone().sub(SKC).multiplyScalar(.93).add(SKC));}}
   for(const x of[-3.6,3.6])for(const y of[-2.4,-7.0])for(const z of[1.5,6.6])o.face.push(v3(x,y,z));
   for(const sx of[-1,1]){
-    const ring=[];for(let k=0;k<=32;k++){const t=k/32*Math.PI*2;ring.push(v3(sx*3.2+2.0*Math.cos(t),-0.45+1.75*Math.sin(t),5.9));}o.orbits.push(ring);
+    const ring=[];for(let k=0;k<32;k++){const t=k/32*Math.PI*2,c=Math.cos(t),s=Math.sin(t),q=e=>Math.sign(e)*Math.abs(e)**.72;
+      ring.push(v3(sx*(3.2+2.0*q(c)),-0.45+1.75*q(s),6.15-.55*Math.max(0,c*sx)));}ring.push(ring[0].clone());o.orbits.push(ring);
     const pr=[v3(sx*1.6,-1.6,-1.4),v3(sx*3.4,-1.25,-2.4),v3(sx*5.2,-1.1,-3.6)];o.petrous.push(pr);
     o.petHull.push(pr.concat(pr.map(p=>p.clone().add(v3(0,-1.5,0))),[v3(sx*5.6,-3.4,-3.9),v3(sx*2.6,-3.0,-1.2)]));
   }
-  o.mand=[v3(-5.0,-2.4,-1.4),v3(-4.8,-5.0,-1.0),v3(-4.6,-7.6,-0.6),v3(-3.6,-9.6,2.8),v3(-1.6,-10.4,5.4),v3(0,-10.6,6.0),
-    v3(1.6,-10.4,5.4),v3(3.6,-9.6,2.8),v3(4.6,-7.6,-0.6),v3(4.8,-5.0,-1.0),v3(5.0,-2.4,-1.4)];
+  o.mand=[v3(-5.0,-2.3,-1.3),v3(-5.0,-4.4,-0.9),v3(-4.75,-6.9,-0.3),v3(-4.1,-8.4,1.6),v3(-2.7,-9.5,4.0),v3(-1.25,-10.2,5.5),v3(0,-10.45,6.05),
+    v3(1.25,-10.2,5.5),v3(2.7,-9.5,4.0),v3(4.1,-8.4,1.6),v3(4.75,-6.9,-0.3),v3(5.0,-4.4,-0.9),v3(5.0,-2.3,-1.3)];
   VERT_Y.forEach(y=>{const c=[];for(const dx of[-.9,.9])for(const dy of[-.65,.65])for(const dz of[-.8,.8])c.push(v3(dx,y+dy,-2.9+dz));
     for(const dx of[-3.0,3.0])for(const dy of[-.25,.25])for(const dz of[-.4,.4])c.push(v3(dx,y+dy,-3.0+dz));o.verts.push(c);});
   for(let k=0;k<=32;k++){const t=k/32*Math.PI*2;o.fm.push(v3(1.55*Math.cos(t),-3.5+0.3*Math.sin(t),-4.6+1.9*Math.sin(t)));}
@@ -619,7 +665,7 @@ const scene=new THREE.Scene();
 const cam=new THREE.PerspectiveCamera(32,1,0.5,300);
 const ctl=new THREE.OrbitControls(cam,R3.domElement);
 ctl.enableDamping=true;ctl.dampingFactor=.12;ctl.minDistance=18;ctl.maxDistance=110;ctl.enablePan=false;
-scene.add(new THREE.HemisphereLight(0xe4ecff,0x2a1512,.75));
+scene.add(new THREE.HemisphereLight(0xe4efff,0x1a2236,.8));
 const dl=new THREE.DirectionalLight(0xffffff,.85);dl.position.set(8,14,18);scene.add(dl);
 const dl2=new THREE.DirectionalLight(0x9fb8ff,.35);dl2.position.set(-12,-6,8);scene.add(dl2);
 const camLight=new THREE.PointLight(0xffffff,.25,0);cam.add(camLight);scene.add(cam);
@@ -631,9 +677,10 @@ const tissueMats=[matHeart,matAtr,matAo,matVen];
 function heartGeometry(){
   const NH=60,NT=72,pos=[],nor=[],idx=[];
   for(let i=0;i<=NH;i++){const h=-0.03+1.03*i/NH;
-    const e=.004,dr=(rprof(Math.min(1,h+e))-rprof(Math.max(-0.03,h-e)))/(2*e);
-    for(let j=0;j<=NT;j++){const th=j/NT*360,p=surf(h,th,1,0),rd=radial(th);
-      const n=(h>=.999)?W.clone():rd.clone().sub(W.clone().multiplyScalar(dr/HL)).normalize();
+    for(let j=0;j<=NT;j++){const th=j/NT*360,p=surf(h,th,1,0);
+      const e=.004,dh=surf(Math.min(1,h+e),th,1,0).sub(surf(Math.max(-0.03,h-e),th,1,0)),dt=surf(h,th+.6,1,0).sub(surf(h,th-.6,1,0));
+      let n=new V3().crossVectors(dt,dh);
+      if(h>=.999||n.lengthSq()<1e-10)n=W.clone();else{n.normalize();if(n.dot(radial(th))<0)n.negate();}
       pos.push(p.x,p.y,p.z);nor.push(n.x,n.y,n.z);if(i%3===0&&j%4===0)ANAT.heart.push(p);}}
   for(let i=0;i<NH;i++)for(let j=0;j<NT;j++){const a=i*(NT+1)+j,b=a+NT+1;idx.push(a,a+1,b,b,a+1,b+1);}
   const c0=center(-0.03),base=pos.length/3;pos.push(c0.x,c0.y,c0.z);nor.push(-W.x,-W.y,-W.z);
@@ -658,27 +705,100 @@ const ivc=new THREE.CatmullRomCurve3([RA.clone().add(new V3(0.6,-1.5,-1)),RA.clo
 heartGroup.add(new THREE.Mesh(new THREE.TubeGeometry(ivc,20,1.0,14,false),matVen));
 for(let i=0;i<=24;i++){ANAT.great.push(aoCurve.getPointAt(i/24));ANAT.great.push(ptCurve.getPointAt(Math.min(1,i/18)));}
 
+/* tubos de secção oval com raio variável (ossos, membros) */
+function ovalTube(curve,segs,radial,ra,rb,outFn){
+  const pos=[],idx=[];let N=null,prevT=null;
+  for(let i=0;i<=segs;i++){const t=i/segs,p=curve.getPointAt(t),T=curve.getTangentAt(t).normalize();
+    if(outFn){N=outFn(p);N.sub(T.clone().multiplyScalar(N.dot(T))).normalize();}
+    else if(!N){const a=Math.abs(T.x)<.9?new V3(1,0,0):new V3(0,1,0);N=new V3().crossVectors(T,a).normalize();}
+    else N.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(prevT,T)).normalize();
+    const Bn=new V3().crossVectors(T,N),A=ra(t),Bv=rb(t);
+    for(let j=0;j<=radial;j++){const a=j/radial*Math.PI*2,ca=Math.cos(a)*A,sa=Math.sin(a)*Bv;
+      pos.push(p.x+N.x*ca+Bn.x*sa,p.y+N.y*ca+Bn.y*sa,p.z+N.z*ca+Bn.z*sa);}
+    prevT=T.clone();}
+  for(let i=0;i<segs;i++)for(let j=0;j<radial;j++){const a=i*(radial+1)+j,b=a+radial+1;idx.push(a,a+1,b,b,a+1,b+1);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g;
+}
+const lerpK=(ks,t)=>{const n=ks.length-1,x=Math.min(n-1e-6,Math.max(0,t*n)),i=Math.floor(x),f=x-i,e=f*f*(3-2*f);return ks[i]+(ks[i+1]-ks[i])*e;};
+function tt(pts,rs,mat,radial=12,cap=true){
+  const c=new THREE.CatmullRomCurve3(pts,false,'centripetal'),rf=t=>lerpK(rs,t);
+  const g=new THREE.Group();g.add(new THREE.Mesh(ovalTube(c,Math.max(16,Math.ceil(c.getLength()/.25)),radial,rf,rf),mat));
+  if(cap)[0,1].forEach(t=>{const s=new THREE.Mesh(new THREE.SphereGeometry(rf(t),radial,8),mat);s.position.copy(c.getPointAt(t));g.add(s);});
+  return g;
+}
+function ellip(c,r,mat,seg=24){const m=new THREE.Mesh(new THREE.SphereGeometry(1,seg,Math.round(seg*.7)),mat);m.scale.set(r[0],r[1],r[2]);m.position.copy(c);return m;}
+
 /* esqueleto torácico */
-const boneMat=new THREE.MeshStandardMaterial({color:0xcfc6b4,roughness:.85,transparent:true,opacity:.17,depthWrite:false});
+const boneMat=new THREE.MeshStandardMaterial({color:0xdcd5c6,roughness:.7,transparent:true,opacity:.2,depthWrite:false});
+const cartMat=new THREE.MeshStandardMaterial({color:0x9cc4ea,roughness:.6,transparent:true,opacity:.14,depthWrite:false});
 const skel=new THREE.Group();scene.add(skel);
-ANAT.verts.forEach(c=>{const y=(c[0].y+c[1].y)/2;const m=new THREE.Mesh(new THREE.BoxGeometry(2.6,1.5,2.4),boneMat);m.position.set(0,y,-8.6);skel.add(m);});
-ANAT.ribs.forEach(pts=>skel.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),40,.24,6,false),boneMat)));
-{const st=new THREE.Mesh(new THREE.BoxGeometry(2.6,13,1),boneMat);st.position.set(0,4.5,CHEST.cz+CHEST.rz*.95);skel.add(st);}
+ANAT.verts.forEach((c,i)=>{const y=(c[0].y+c[1].y)/2;
+  const b=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.36,1.45,22),boneMat);b.scale.set(1,1,.86);b.position.set(0,y,-8.3);skel.add(b);
+  const d=new THREE.Mesh(new THREE.CylinderGeometry(1.25,1.25,.55,22),cartMat);d.scale.set(1,1,.86);d.position.set(0,y+1.17,-8.3);if(i<ANAT.verts.length-1)skel.add(d);
+  skel.add(tt([v3(-.95,y+.1,-9.25),v3(0,y+.05,-10.15),v3(.95,y+.1,-9.25)],[.26,.3,.26],boneMat,8,false));
+  skel.add(tt([v3(0,y,-10.1),v3(0,y-.7,-11.1),v3(0,y-1.5,-11.9)],[.32,.26,.2],boneMat,8));
+  for(const sd of[-1,1])skel.add(tt([v3(sd*.9,y+.2,-9.4),v3(sd*1.8,y+.25,-9.75),v3(sd*2.55,y+.15,-9.9)],[.28,.26,.3],boneMat,8));
+});
+const ribOut=p=>new V3(p.x-0,0,p.z-CHEST.cz);
+ANAT.ribs.forEach(pts=>{const c=new THREE.CatmullRomCurve3(pts,false,'centripetal');
+  skel.add(new THREE.Mesh(ovalTube(c,48,10,t=>.13+.06*(1-t),t=>.24+.17*Math.min(1,t*3),ribOut),boneMat));});
+ANAT.cart.forEach(p=>skel.add(tt(p,[.2,.16,.15],cartMat,8,false)));
+{ // esterno: manúbrio, corpo e apêndice xifoide
+  const sh=new THREE.Shape(),R=[[0,12.0],[.5,12.25],[1.7,12.35],[1.95,11.4],[1.35,9.9],[1.15,9.45],[1.3,8],[1.45,5.5],[1.35,2.8],[1.0,1.3],[.55,.6],[.35,-.9],[0,-1.4]];
+  const L=R.slice(1,-1).map(([x,y])=>[-x,y]).reverse();
+  [...R,...L].forEach(([x,y],i)=>i?sh.lineTo(x,y):sh.moveTo(x,y));sh.closePath();
+  const g=new THREE.ExtrudeGeometry(sh,{depth:.5,bevelEnabled:true,bevelThickness:.25,bevelSize:.25,bevelSegments:4,curveSegments:8});
+  const st=new THREE.Mesh(g,boneMat);st.position.set(0,0,CHEST.cz+CHEST.rz*.95-.35);skel.add(st);
+}
+for(const sd of[-1,1])skel.add(tt([v3(sd*1.3,12.3,10.2),v3(sd*3.2,12.7,10.3),v3(sd*5.3,13.0,8.8),v3(sd*7.2,13.5,6.2),v3(sd*8.6,13.8,3.8)],[.42,.36,.32,.3,.36],boneMat,10));
 
 /* crânio */
 const neuroGroup=new THREE.Group();scene.add(neuroGroup);
 {
   const skullMat=new THREE.MeshStandardMaterial({color:0xd8cfbd,roughness:.9,transparent:true,opacity:.08,depthWrite:false,side:THREE.DoubleSide});
-  const nb=new THREE.MeshStandardMaterial({color:0xd3c9b5,roughness:.85,transparent:true,opacity:.32,depthWrite:false});
-  const vault=new THREE.Mesh(new THREE.SphereGeometry(1,48,32),skullMat);vault.scale.set(...SKR);vault.position.copy(SKC);neuroGroup.add(vault);
-  for(const sx of[-1,1]){const t=new THREE.Mesh(new THREE.TorusGeometry(1,0.1,8,36),nb);t.scale.set(2.0,1.75,1);t.position.set(sx*3.2,-0.45,5.9);neuroGroup.add(t);}
-  NEU.petrous.forEach(pr=>neuroGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pr),16,.38,8,false),nb)));
-  neuroGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(NEU.mand),80,.35,8,false),nb));
-  VERT_Y.forEach(y=>{const b=new THREE.Mesh(new THREE.BoxGeometry(1.8,1.3,1.6),nb);b.position.set(0,y,-2.9);neuroGroup.add(b);
-    const tp=new THREE.Mesh(new THREE.BoxGeometry(6.0,0.5,0.8),nb);tp.position.set(0,y,-3.0);neuroGroup.add(tp);});
+  const nb=new THREE.MeshStandardMaterial({color:0xd3c9b5,roughness:.85,transparent:true,opacity:.17,depthWrite:false});
+  const face=new THREE.MeshStandardMaterial({color:0xd8cfbd,roughness:.85,transparent:true,opacity:.07,depthWrite:false,side:THREE.DoubleSide});
+  // abóbada: esfera deformada, com a base achatada em degraus suaves (fossas anterior, média e posterior)
+  {const g=new THREE.SphereGeometry(1,72,48),P_=g.attributes.position,sg=x=>1/(1+Math.exp(-x));
+    const cut=z=>-3.6+.8*sg((z+2)/.5)+3.3*sg((z-4.3)/.45);
+    for(let i=0;i<P_.count;i++){const p=skullDir(P_.getX(i),P_.getY(i),P_.getZ(i)),c=cut(p.z);if(p.y<c)p.y=c-(c-p.y)*.1;P_.setXYZ(i,p.x,p.y,p.z);}
+    g.computeVertexNormals();neuroGroup.add(new THREE.Mesh(g,skullMat));}
+  // arcadas supraciliares, rebordos orbitários, arcadas zigomáticas
+  neuroGroup.add(tt([v3(-5.3,.7,4.6),v3(-3.4,1.45,6.45),v3(-1.2,1.35,7.0),v3(0,1.2,7.05),v3(1.2,1.35,7.0),v3(3.4,1.45,6.45),v3(5.3,.7,4.6)],[.32,.42,.36,.3,.36,.42,.32],nb,10));
+  NEU.orbits.forEach(r=>neuroGroup.add(new THREE.Mesh(ovalTube(new THREE.CatmullRomCurve3(r.slice(0,-1),true,'centripetal'),64,8,()=>.16,()=>.16),nb)));
+  for(const sx of[-1,1]){
+    neuroGroup.add(tt([v3(sx*4.6,-2.3,5.4),v3(sx*5.5,-2.5,3.6),v3(sx*5.95,-2.4,1.4),v3(sx*5.75,-2.2,-.9)],[.42,.32,.3,.34],nb,10));
+    neuroGroup.add(ellip(v3(sx*4.1,-2.2,5.4),[1.0,1.0,.7],face,16));
+    // processo mastoideu
+    neuroGroup.add(ellip(v3(sx*5.0,-3.6,-3.3),[.6,1.0,.7],face,14));
+  }
+  // maxila, abertura piriforme, arcadas dentárias
+  neuroGroup.add(ellip(v3(0,-4.6,4.7),[3.0,2.3,2.1],face,28));
+  {const pr=[];for(let k=0;k<32;k++){const t=k/32*Math.PI*2;pr.push(v3(Math.sin(t)*(.32+.55*(1-Math.cos(t))/2),-1.65+1.45*Math.cos(t),6.85-.25*(1-Math.cos(t))/2));}
+    neuroGroup.add(new THREE.Mesh(ovalTube(new THREE.CatmullRomCurve3(pr,true,'centripetal'),48,6,()=>.11,()=>.11),nb));}
+  neuroGroup.add(tt([v3(-3.0,-6.1,1.7),v3(-2.5,-6.25,3.9),v3(-1.3,-6.35,5.35),v3(0,-6.4,5.8),v3(1.3,-6.35,5.35),v3(2.5,-6.25,3.9),v3(3.0,-6.1,1.7)],[.4,.45,.42,.42,.42,.45,.4],nb,10));
+  neuroGroup.add(tt([v3(-3.3,-7.4,1.6),v3(-2.6,-7.5,3.8),v3(-1.3,-7.55,5.25),v3(0,-7.6,5.65),v3(1.3,-7.55,5.25),v3(2.6,-7.5,3.8),v3(3.3,-7.4,1.6)],[.36,.4,.38,.38,.38,.4,.36],nb,10));
+  // rochedos (pirâmides petrosas) mais largos lateralmente
+  NEU.petrous.forEach(pr=>neuroGroup.add(tt(pr,[.28,.45,.6],nb,10)));
+  // mandíbula: côndilos, ramos, ângulos, corpo e mento
+  neuroGroup.add(tt(NEU.mand,[.36,.34,.42,.5,.52,.55,.6,.55,.52,.5,.42,.34,.36],nb,12));
+  for(const sx of[-1,1]){neuroGroup.add(tt([v3(sx*4.95,-4.6,-.5),v3(sx*4.8,-3.4,.2),v3(sx*4.6,-2.7,.6)],[.32,.22,.14],nb,8));
+    neuroGroup.add(ellip(v3(sx*5.0,-2.2,-1.3),[.45,.3,.5],nb,12));}
+  // coluna cervical: corpos, apófises espinhosas e forâmenes transversos (onde passa a vertebral)
+  const VAX=[[-13.3,2.65,-2.2],[-12.6,2.6,-2.4],[-9.5,2.55,-2.8],[-7.0,2.5,-3.0],[-5.6,3.25,-3.3],[-4.6,3.05,-4.0]];
+  const vaAt=y=>{for(let i=1;i<VAX.length;i++)if(y<=VAX[i][0]){const a=VAX[i-1],b=VAX[i],k=(y-a[0])/(b[0]-a[0]);return [a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k];}return VAX[VAX.length-1].slice(1);};
+  VERT_Y.forEach((y,i)=>{
+    if(i>0){const b=new THREE.Mesh(new THREE.CylinderGeometry(.92,.96,1.15,20),nb);b.scale.set(1,1,.82);b.position.set(0,y,-2.85);neuroGroup.add(b);}
+    else neuroGroup.add(tt([v3(-.9,y,-2.3),v3(0,y+.1,-1.9),v3(.9,y,-2.3)],[.3,.34,.3],nb,8,false));
+    neuroGroup.add(tt([v3(-1.0,y+.05,-3.7),v3(0,y,-4.5),v3(1.0,y+.05,-3.7)],[.22,.26,.22],nb,8,false));
+    neuroGroup.add(tt([v3(0,y,-4.45),v3(0,y-.45,-5.2),v3(0,y-.75,-5.75)],[.26,.22,.2],nb,8));
+    for(const sx of[-1,1]){const [x,z]=vaAt(y);
+      const r=new THREE.Mesh(new THREE.TorusGeometry(.4,.15,8,20),nb);r.rotation.x=Math.PI/2;r.position.set(sx*x,y,z);neuroGroup.add(r);
+      neuroGroup.add(tt([v3(sx*.85,y,-2.9),v3(sx*(x-.42),y,z)],[.2,.17],nb,8,false));}
+  });
   const fm=new THREE.Mesh(new THREE.TorusGeometry(1,0.08,8,36),nb);fm.scale.set(1.55,1.9,1);fm.rotation.x=Math.PI/2;fm.position.set(0,-3.5,-4.6);neuroGroup.add(fm);
-  neuroGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(NEU.clivus),8,.3,8,false),nb));
-  const ds=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.0,0.25),nb);ds.position.set(0,0.2,-0.85);neuroGroup.add(ds);
+  neuroGroup.add(tt(NEU.clivus,[.42,.3],nb,10));
+  neuroGroup.add(tt([v3(-.55,.55,-.85),v3(0,.75,-.9),v3(.55,.55,-.85)],[.16,.18,.16],nb,8));
 }
 
 /* vasos */
@@ -692,18 +812,18 @@ function taperTube(v,t0,t1,radialN){
     for(let j=0;j<=radialN;j++){const a=j/radialN*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a);
       const nx=N.x*ca+Bn.x*sa,ny=N.y*ca+Bn.y*sa,nz=N.z*ca+Bn.z*sa;pos.push(p.x+nx*r,p.y+ny*r,p.z+nz*r);nor.push(nx,ny,nz);}
     prevT=T.clone();}
-  for(let i=0;i<n;i++)for(let j=0;j<radialN;j++){const a=i*(radialN+1)+j,b=a+radialN+1;idx.push(a,b,a+1,b,b+1,a+1);}
+  for(let i=0;i<n;i++)for(let j=0;j<radialN;j++){const a=i*(radialN+1)+j,b=a+radialN+1;idx.push(a,a+1,b,b,a+1,b+1);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setIndex(idx);return g;
 }
 const COL={L:new THREE.Color(css('--lca')),R:new THREE.Color(css('--rca')),ant:new THREE.Color(css('--lca')),post:new THREE.Color(css('--rca')),ext:new THREE.Color(css('--eca'))};
 const COLS={L:'--lca',R:'--rca',ant:'--lca',post:'--rca',ext:'--eca'};
-const ACC=new THREE.Color(css('--accent')), GREY=new THREE.Color(0x3a4048);
+const ACC=new THREE.Color(css('--accent')), GREY=new THREE.Color(0x34475e);
 let catheter3=[];
 function buildVessels3D(){
   vesselGroup.children.slice().forEach(c=>{vesselGroup.remove(c);c.geometry.dispose();c.material.dispose();});
   M.pieces.forEach(pc=>{
-    const mat=new THREE.MeshStandardMaterial({color:COL[pc.v.t].clone(),roughness:.38,metalness:.05,emissive:COL[pc.v.t].clone().multiplyScalar(.18)});
-    const m=new THREE.Mesh(taperTube(pc.v,pc.t0,pc.t1,10),mat);m.userData.pc=pc;pc.mesh=m;vesselGroup.add(m);
+    const mat=new THREE.MeshStandardMaterial({color:COL[pc.v.t].clone(),roughness:.3,metalness:.08,emissive:COL[pc.v.t].clone().multiplyScalar(.18)});
+    const m=new THREE.Mesh(taperTube(pc.v,pc.t0,pc.t1,16),mat);m.userData.pc=pc;pc.mesh=m;vesselGroup.add(m);
     if(pc.t1>=1){const cap=new THREE.Mesh(new THREE.SphereGeometry(rAt(pc.v,1)*1.45,10,8),mat);cap.position.copy(pc.v.curve.getPointAt(1));cap.userData.pc=pc;vesselGroup.add(cap);}
   });
   catheter3.forEach(m=>{scene.remove(m);m.geometry.dispose();});catheter3=[];
@@ -758,26 +878,55 @@ const RR=new THREE.WebGLRenderer({antialias:true,alpha:true});RR.setPixelRatio(M
 const room=new THREE.Scene();
 const rcam=new THREE.PerspectiveCamera(34,4/3,1,400);rcam.up.set(0,0,1);rcam.position.set(38,-12,13);
 const rctl=new THREE.OrbitControls(rcam,RR.domElement);rctl.target.set(0,1.5,-1);rctl.enableDamping=true;rctl.enablePan=false;rctl.minDistance=25;rctl.maxDistance=90;rctl.update();
-room.add(new THREE.HemisphereLight(0xe8eefc,0x1b2027,.8));
+room.add(new THREE.HemisphereLight(0xe8f1ff,0x13233a,.85));
 {const l=new THREE.DirectionalLight(0xffffff,.7);l.position.set(10,-20,30);room.add(l);}
 const patient=new THREE.Group();room.add(patient);
-const bodyMat=new THREE.MeshStandardMaterial({color:0x8d9aa8,roughness:.8,transparent:true,opacity:.45,depthWrite:false});
+const bodyMat=new THREE.MeshStandardMaterial({color:0xa6bfd8,roughness:.7,transparent:true,opacity:.42,depthWrite:false});
 const organMat=new THREE.MeshStandardMaterial({color:0xb03a30,roughness:.6});
 const heartDot=new THREE.Mesh(new THREE.SphereGeometry(1.1,20,14),organMat);heartDot.scale.set(1.1,1,.9);heartDot.position.set(0.7,0,0.6);patient.add(heartDot);
 const brainDot=new THREE.Mesh(new THREE.SphereGeometry(1.0,20,14),organMat);brainDot.scale.set(1,1,1.2);brainDot.position.set(0,7.4,0.3);patient.add(brainDot);
-{const g=new THREE.CylinderGeometry(3.1,3.1,17,28);const b=new THREE.Mesh(g,bodyMat);b.scale.set(1.35,1,1);b.position.set(0,-3.2,0);patient.add(b);
- const hd=new THREE.Mesh(new THREE.SphereGeometry(1.75,24,18),bodyMat);hd.position.set(0,7.3,0.2);patient.add(hd);
- const tb=new THREE.Mesh(new THREE.BoxGeometry(8,30,.6),new THREE.MeshStandardMaterial({color:0x2c3540,roughness:.7}));tb.position.set(0,-3,-3.5);patient.add(tb);
- const fl=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.MeshStandardMaterial({color:0x10161c,roughness:1}));fl.position.set(0,0,-13);room.add(fl);
- const grid=new THREE.GridHelper(80,20,0x1f2933,0x1a222b);grid.rotation.x=Math.PI/2;grid.position.z=-12.95;room.add(grid);}
+{ // tronco: secções superelípticas ao longo do eixo do corpo (anca, cintura, tórax, ombros), costas apoiadas na mesa
+  const BACK=-3.15,K=[[-12.4,2.2,1.4],[-11.5,3.55,2.25],[-9.6,3.95,2.5],[-7.4,3.55,2.3],[-5.6,3.35,2.38],[-3.0,3.72,2.72],[0,4.1,2.98],[2.8,4.35,2.85],[4.4,4.3,2.45],[5.3,3.65,2.0],[5.85,2.2,1.45],[6.15,.9,.9]];
+  const cv=new THREE.CatmullRomCurve3(K.map(k=>v3(k[1],k[0],k[2])),false,'centripetal'),NR=60,NA=40,pos=[],idx=[];
+  const se=(c,n)=>Math.sign(c)*Math.abs(c)**(2/n);
+  for(let i=0;i<=NR;i++){const q=cv.getPoint(i/NR),hw=q.x,y=q.y,hd=q.z,cz=BACK+hd;
+    for(let j=0;j<=NA;j++){const a=j/NA*Math.PI*2,c=Math.cos(a),s=Math.sin(a);
+      pos.push(hw*se(c,2.6),y,cz+hd*se(s,s<0?3.2:2.3)-.25*Math.exp(-1*(c/.18)**2)*Math.max(0,s)*(y>-5&&y<4?1:0));}}
+  for(let i=0;i<NR;i++)for(let j=0;j<NA;j++){const a=i*(NA+1)+j,b=a+NA+1;idx.push(a,b,a+1,b,b+1,a+1);}
+  [0,NR].forEach(i=>{const q=cv.getPoint(i/NR),c0=pos.length/3;pos.push(0,q.y,BACK+q.z);for(let j=0;j<NA;j++){const a=i*(NA+1)+j;i?idx.push(c0,a,a+1):idx.push(c0,a+1,a);}});
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();patient.add(new THREE.Mesh(g,bodyMat));
+  // pescoço e cabeça (face para cima), com mandíbula e nariz
+  patient.add(tt([v3(0,5.4,-1.0),v3(0,6.3,-.6)],[.95,.85],bodyMat,16,false));
+  patient.add(ellip(v3(0,7.55,0.1),[1.5,1.9,1.65],bodyMat,28));
+  patient.add(ellip(v3(0,6.55,.55),[1.15,.95,1.1],bodyMat,20));
+  patient.add(ellip(v3(0,7.25,1.72),[.28,.55,.32],bodyMat,12));
+  for(const sx of[-1,1])patient.add(ellip(v3(sx*1.5,7.5,.1),[.2,.45,.32],bodyMat,10));
+  // braços ao longo do corpo
+  for(const sx of[-1,1]){
+    patient.add(tt([v3(sx*4.35,4.3,-.7),v3(sx*4.95,1.2,-1.6),v3(sx*5.15,-1.7,-2.05),v3(sx*5.05,-4.6,-2.2),v3(sx*4.85,-7.5,-2.3)],[1.05,.9,.78,.66,.5],bodyMat,16));
+    patient.add(ellip(v3(sx*4.75,-8.6,-2.35),[.55,1.05,.32],bodyMat,14));
+  }
+  // pernas e pés
+  for(const sx of[-1,1]){
+    patient.add(tt([v3(sx*1.9,-10.8,-1.0),v3(sx*2.05,-15,-1.25),v3(sx*2.1,-19,-1.75),v3(sx*2.05,-22.5,-2.0),v3(sx*1.95,-25.9,-2.35)],[2.05,1.65,1.2,1.0,.66],bodyMat,16));
+    patient.add(ellip(v3(sx*2.0,-26.4,-1.45),[.62,.5,1.25],bodyMat,14));
+  }
+  // almofada, mesa com colchão e coluna da mesa
+  patient.add(ellip(v3(0,7.9,-2.5),[2.6,1.9,.75],new THREE.MeshStandardMaterial({color:0x5d7590,roughness:.9}),24));
+  const tbM=new THREE.MeshStandardMaterial({color:0x1d3047,roughness:.6}),mtM=new THREE.MeshStandardMaterial({color:0x2c4664,roughness:.85});
+  const tb=new THREE.Mesh(new THREE.BoxGeometry(10.8,38,.45),tbM);tb.position.set(0,-8.5,-3.75);patient.add(tb);
+  const mt=new THREE.Mesh(new THREE.BoxGeometry(9.6,37,.4),mtM);mt.position.set(0,-8.5,-3.35);patient.add(mt);
+  const ped=new THREE.Mesh(new THREE.CylinderGeometry(1.6,2.2,8.6,20),tbM);ped.rotation.x=Math.PI/2;ped.position.set(0,-18,-8.3);patient.add(ped);
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.MeshStandardMaterial({color:0x07111e,roughness:1}));fl.position.set(0,0,-13);room.add(fl);
+  const grid=new THREE.GridHelper(80,20,0x18304a,0x102236);grid.rotation.x=Math.PI/2;grid.position.z=-12.95;room.add(grid);}
 const armMat=new THREE.MeshStandardMaterial({color:0xd5d9de,roughness:.45,metalness:.15});
 const cGroup=new THREE.Group();room.add(cGroup);
 const ARC=10;
 const arc=new THREE.Mesh(new THREE.TorusGeometry(ARC,.5,12,64,Math.PI),armMat);cGroup.add(arc);
 const det=new THREE.Mesh(new THREE.BoxGeometry(4.6,4.6,1.2),new THREE.MeshStandardMaterial({color:0x39424d,roughness:.5}));cGroup.add(det);
-const detFace=new THREE.Mesh(new THREE.PlaneGeometry(4,4),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.5}));cGroup.add(detFace);
+const detFace=new THREE.Mesh(new THREE.PlaneGeometry(4,4),new THREE.MeshBasicMaterial({color:0x4da3ff,transparent:true,opacity:.55}));cGroup.add(detFace);
 const tube=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.3,3.2,20),armMat);cGroup.add(tube);
-const beam=new THREE.Mesh(new THREE.ConeGeometry(2.3,15.6,24,1,true),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.1,side:THREE.DoubleSide,depthWrite:false}));cGroup.add(beam);
+const beam=new THREE.Mesh(new THREE.ConeGeometry(2.3,15.6,24,1,true),new THREE.MeshBasicMaterial({color:0x4da3ff,transparent:true,opacity:.12,side:THREE.DoubleSide,depthWrite:false}));cGroup.add(beam);
 const holder=new THREE.Mesh(new THREE.BoxGeometry(1.6,5.5,1.6),new THREE.MeshStandardMaterial({color:0x8e98a3,roughness:.6}));holder.position.set(0,ARC+2.6,0);room.add(holder);
 const col=new THREE.Mesh(new THREE.BoxGeometry(2.4,2.4,13),new THREE.MeshStandardMaterial({color:0x6f7a85,roughness:.6}));col.position.set(0,ARC+5.4,-6.5);room.add(col);
 const _m=new THREE.Matrix4();
@@ -914,7 +1063,7 @@ const curGroup=()=>S.mode==='cardio'?null:(S.inj.startsWith('VA')?'post':'ant');
 function visiblePresets(){const P=getPresets();return S.mode==='cardio'?P.filter(p=>S.inj==='B'||p.g===S.inj):P.filter(p=>p.g===curGroup());}
 function drawMap(){
   const G=mapGeom(),{w,h,dpr}=G;computeHeat();
-  mx.clearRect(0,0,w,h);mx.fillStyle='#0a0e12';mx.fillRect(G.L,G.T,G.pw,G.ph);
+  mx.clearRect(0,0,w,h);mx.fillStyle=css('--well');mx.fillRect(G.L,G.T,G.pw,G.ph);
   const cw=G.pw/36,ch=G.ph/18;
   heat.cells.forEach(([a,c,f])=>{mx.fillStyle=fsColor(f,.16+.42*Math.max(0,Math.min(1,(1-f)*1.6)));mx.fillRect(ax(a,G)-cw/2,ay(c,G)-ch/2,cw+.5,ch+.5);});
   mx.strokeStyle=css('--line-2');mx.lineWidth=1;
@@ -934,7 +1083,7 @@ function drawMap(){
   if(heat.best){const x=ax(heat.best[0],G),y=ay(heat.best[1],G);mx.fillStyle=css('--good');mx.beginPath();mx.moveTo(x,y-6*dpr);mx.lineTo(x+6*dpr,y);mx.lineTo(x,y+6*dpr);mx.lineTo(x-6*dpr,y);mx.closePath();mx.fill();}
   const x=ax(S.lao,G),y=ay(S.cra,G);mx.strokeStyle=css('--accent');mx.lineWidth=1*dpr;mx.globalAlpha=.55;
   mx.beginPath();mx.moveTo(x,G.T);mx.lineTo(x,G.T+G.ph);mx.moveTo(G.L,y);mx.lineTo(G.L+G.pw,y);mx.stroke();mx.globalAlpha=1;
-  mx.fillStyle=css('--accent');mx.beginPath();mx.arc(x,y,5.5*dpr,0,Math.PI*2);mx.fill();mx.strokeStyle='#07090b';mx.lineWidth=2*dpr;mx.stroke();
+  mx.fillStyle=css('--accent');mx.beginPath();mx.arc(x,y,5.5*dpr,0,Math.PI*2);mx.fill();mx.strokeStyle=css('--deep');mx.lineWidth=2*dpr;mx.stroke();
   const sd=M.SEG[S.sel];$('#mapT').textContent=sd?sd.code+' · '+sd.n+(sd.side?' ('+sd.side+')':''):'';
 }
 function mapPick(e){const G=mapGeom(),r=mc.getBoundingClientRect(),k=mc.width/r.width;const x=(e.clientX-r.left)*k,y=(e.clientY-r.top)*k;
