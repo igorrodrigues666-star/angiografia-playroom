@@ -1,0 +1,1105 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Projeções Angiográficas</title>
+<meta name="description" content="Simulador educativo de projeções angiográficas coronárias e cerebrais: modelo 3D, angiograma simulado, mapa de encurtamento e arco em C.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0f13'/%3E%3Cpath d='M16 26C6 19 6 10 11 8c3-1 5 1 5 3 0-2 2-4 5-3 5 2 5 11-5 18z' fill='%23f0ad32'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&family=Martian+Mono:wght@400;500;600&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}body{margin:0}[hidden]{display:none!important}
+/* Layout: consola de angiografia — modelo 3D | angiograma | comandos do arco; coluna única no telemóvel com o angiograma primeiro */
+:root{
+  --bg:#0b0f13; --panel:#11171d; --panel-2:#161e26; --line:#212b35; --line-2:#2d3945;
+  --fg:#d8e0e7; --muted:#7e8d9b; --faint:#536170;
+  --accent:#f0ad32; --accent-ink:#1b1305; --accent-soft:rgba(240,173,50,.14);
+  --lca:#ee7e66; --rca:#58c3d4; --eca:#b39cf0;
+  --good:#5cc68a; --warn:#e6b84a; --bad:#df6557;
+  --f-ui:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"Martian Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--f-ui);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 32px}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:0 auto 12px;max-width:1680px}
+.brand{font-family:var(--f-ui);font-stretch:72%;font-weight:700;font-size:22px;letter-spacing:.02em;text-transform:uppercase;margin:0}
+.brand span{color:var(--accent)}
+.sub{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);letter-spacing:.04em}
+.top .note{margin-left:auto;font-size:12px;color:var(--faint)}
+.modec button{font-size:13px;padding:6px 14px;font-weight:600;font-stretch:85%;letter-spacing:.02em}
+
+.grid{display:grid;gap:10px;max-width:1680px;margin:0 auto;grid-template-columns:minmax(0,1fr);
+  grid-template-areas:"angio" "ctrl" "seg" "heart" "map" "room"}
+@media (min-width:780px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"angio ctrl" "heart map" "seg room"}}
+@media (min-width:1200px){.grid{grid-template-columns:minmax(0,1.05fr) minmax(0,1.1fr) minmax(0,.85fr);grid-template-areas:"heart angio ctrl" "heart map room" "seg seg seg"}}
+#p-angio{grid-area:angio}#p-ctrl{grid-area:ctrl}#p-heart{grid-area:heart}#p-map{grid-area:map}#p-room{grid-area:room}#p-seg{grid-area:seg}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;display:flex;flex-direction:column;min-width:0}
+.ph{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.ph h2{margin:0 auto 0 0;font-family:var(--f-mono);font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.pf{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 10px;border-top:1px solid var(--line)}
+.lab{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+
+.tg,.segc button{background:var(--panel-2);border:1px solid var(--line-2);border-radius:4px;padding:4px 8px;font-size:12px;font-stretch:88%;cursor:pointer;color:var(--muted);white-space:nowrap}
+.tg:hover{color:var(--fg);border-color:var(--faint)}
+.tg[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.segc{display:inline-flex;border:1px solid var(--line-2);border-radius:4px;overflow:hidden}
+.segc button{border:0;border-radius:0;border-right:1px solid var(--line-2)}
+.segc button:last-child{border-right:0}
+.segc button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.injc{display:inline-flex;flex-wrap:wrap;gap:6px}
+.play{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.play:hover{color:var(--accent-ink);filter:brightness(1.08)}
+
+/* angiograma */
+.angio-wrap{position:relative;padding:10px;background:#07090b}
+.angio-box{position:relative;aspect-ratio:1/1;width:100%;max-width:100%;border-radius:3px;overflow:hidden;background:#9c9c99}
+#angio{display:block;width:100%;height:100%;touch-action:manipulation;cursor:crosshair}
+.ov{position:absolute;font-family:var(--f-mono);font-size:11px;color:#f4f4f2;text-shadow:0 0 3px #000,0 0 1px #000;pointer-events:none;line-height:1.35}
+.ov.tl{top:8px;left:10px}.ov.tr{top:8px;right:10px;text-align:right}.ov.bl{bottom:8px;left:10px}
+#tip{position:absolute;pointer-events:none;background:rgba(10,13,16,.92);border:1px solid var(--accent);color:var(--fg);font-family:var(--f-mono);font-size:11px;padding:3px 7px;border-radius:3px;white-space:nowrap;transform:translate(-50%,calc(-100% - 12px))}
+
+/* comandos */
+.ctrl-body{padding:12px;display:flex;flex-direction:column;gap:14px}
+.read{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.read div{background:#07090b;border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+.read b{display:block;font-family:var(--f-mono);font-weight:500;font-size:clamp(18px,2.2vw,24px);color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.sl{display:flex;flex-direction:column;gap:4px}
+.sl .ends{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:9.5px;color:var(--faint)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--line-2),var(--line) 50%,var(--line-2));border:1px solid var(--line-2)}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--line);border:1px solid var(--line-2)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:24px;border-radius:3px;background:var(--accent);margin-top:-10px;border:2px solid #07090b}
+input[type=range]::-moz-range-thumb{width:12px;height:22px;border-radius:3px;background:var(--accent);border:2px solid #07090b}
+.presets{display:flex;flex-direction:column;gap:6px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:5px}
+.pre{text-align:left;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;cursor:pointer;color:var(--fg)}
+.pre:hover{border-color:var(--faint)}
+.pre b{display:block;font-size:12px;font-weight:600;font-stretch:90%}
+.pre small{display:block;font-family:var(--f-mono);font-size:9px;color:var(--muted)}
+.pre.on{border-color:var(--accent);background:var(--accent-soft)}
+.pre.on small{color:var(--accent)}
+.hint{font-size:12px;color:var(--muted);margin:0}
+
+/* 3D */
+.stage{position:relative;flex:1;min-height:380px;overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,#141c24,#0a0e12)}
+.stage canvas{display:block;position:absolute;inset:0;width:100%;height:100%}
+.lbl3{position:absolute;transform:translate(-50%,-50%);font-family:var(--f-mono);font-size:10px;padding:1px 5px;border-radius:2px;background:rgba(7,9,11,.78);pointer-events:none;white-space:nowrap}
+.lbl3.L,.lbl3.ant{color:var(--lca)}.lbl3.R,.lbl3.post{color:var(--rca)}.lbl3.ext{color:var(--eca)}.lbl3.N{color:var(--muted)}
+.orient{position:absolute;left:10px;bottom:10px;font-family:var(--f-mono);font-size:10px;color:var(--faint);pointer-events:none}
+.room{position:relative;aspect-ratio:4/3;max-width:100%;background:radial-gradient(100% 90% at 50% 30%,#151d25,#0a0e12);overflow:hidden}
+.room canvas{display:block;position:absolute;inset:0;width:100%;height:100%}
+
+/* mapa */
+.map-wrap{padding:10px 10px 4px}
+#map{display:block;width:100%;aspect-ratio:2/1;max-width:100%;touch-action:none;cursor:crosshair}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;font-size:11.5px;color:var(--muted);padding:0 10px 10px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+
+/* segmentos */
+.seg-body{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;padding:12px}
+@media (min-width:1200px){.seg-body{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}}
+.chips{display:flex;flex-direction:column;gap:10px;min-width:0}
+.chiprow{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.chiprow .lab{width:100%}
+.chip{display:inline-flex;align-items:baseline;gap:5px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:4px 8px 4px 6px;cursor:pointer;font-size:12px;font-stretch:90%;color:var(--fg)}
+.chip i{font-style:normal;font-family:var(--f-mono);font-size:10px;color:var(--muted)}
+.chip em{font-style:normal;font-family:var(--f-mono);font-size:9.5px;color:var(--faint)}
+.chip.L i,.chip.ant i{color:var(--lca)}.chip.R i,.chip.post i{color:var(--rca)}.chip.ext i{color:var(--eca)}
+.chip:hover{border-color:var(--faint)}
+.chip.on{border-color:var(--accent);background:var(--accent-soft)}
+.info{background:#0a0e12;border:1px solid var(--line);border-radius:5px;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.ih{display:flex;gap:12px;align-items:center}
+.inum{font-family:var(--f-mono);font-size:22px;font-weight:600;color:var(--accent);min-width:2.4ch}
+.iname{font-weight:650;font-size:16px;font-stretch:92%;text-wrap:balance}
+.ien{font-size:12px;color:var(--muted)}
+.irow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:13px}
+.irow > span:first-child{color:var(--muted);min-width:150px}
+.big{font-family:var(--f-mono);font-size:15px;font-variant-numeric:tabular-nums}
+.pill{font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;border:1px solid currentColor}
+.pill.good{color:var(--good)}.pill.warn{color:var(--warn)}.pill.bad{color:var(--bad)}
+.link{background:none;border:1px solid var(--line-2);border-radius:4px;padding:3px 8px;font-size:12px;cursor:pointer;color:var(--fg)}
+.link:hover{border-color:var(--accent);color:var(--accent)}
+.small{font-size:11.5px;color:var(--faint);margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <h1 class="brand">Projeções <span id="brandM">Coronárias</span></h1>
+  <div class="segc modec" id="mode" role="group" aria-label="Território">
+    <button data-v="cardio" aria-pressed="true">Coronárias</button><button data-v="neuro" aria-pressed="false">Cerebral</button>
+  </div>
+  <div class="sub" id="sub">ARCO EM C · LAO/RAO · CRA/CAU · SEGMENTOS SYNTAX</div>
+  <div class="note">Modelo esquemático para ensino, não representa um doente real</div>
+</header>
+
+<main class="grid">
+  <section class="panel" id="p-heart" aria-label="Modelo 3D">
+    <div class="ph">
+      <h2 id="h3d">Coração 3D</h2>
+      <button class="tg" id="t-det" aria-pressed="false">Vista do detetor</button>
+      <button class="tg" id="t-skel" aria-pressed="true">Esqueleto</button>
+      <button class="tg" id="t-see" aria-pressed="false">Transparente</button>
+      <button class="tg" id="t-lbl" aria-pressed="true">Etiquetas</button>
+      <button class="tg" id="t-fs" aria-pressed="false">Encurtamento</button>
+    </div>
+    <div class="stage" id="stage"><div id="lbls"></div><div class="orient">Arraste para rodar · pinça para zoom</div></div>
+    <div class="pf" id="footC">
+      <span class="lab">Dominância</span>
+      <div class="segc" id="dom">
+        <button data-v="R" aria-pressed="true">Direita</button><button data-v="L" aria-pressed="false">Esquerda</button><button data-v="C" aria-pressed="false">Codominante</button>
+      </div>
+      <button class="tg" id="t-ri" aria-pressed="false">Ramo intermédio</button>
+    </div>
+    <div class="pf" id="footN" hidden>
+      <span class="lab">Variantes</span>
+      <button class="tg" id="t-fetal" aria-pressed="false">ACP fetal esquerda</button>
+      <button class="tg" id="t-a1h" aria-pressed="false">A1 direita hipoplásica</button>
+    </div>
+  </section>
+
+  <section class="panel" id="p-angio" aria-label="Angiograma simulado">
+    <div class="ph">
+      <h2>Angiograma</h2>
+      <div class="injc" id="injC"></div>
+      <button class="tg" id="t-dsa" aria-pressed="true" hidden>DSA</button>
+      <button class="tg" id="t-col" aria-pressed="false">Cor</button>
+      <button class="tg play" id="cine">▶ Injetar</button>
+    </div>
+    <div class="angio-wrap">
+      <div class="angio-box">
+        <canvas id="angio" aria-label="Angiograma simulado na projeção atual"></canvas>
+        <div class="ov tl" id="ovA"></div>
+        <div class="ov tr" id="ovI"></div>
+        <div class="ov bl" id="ovF">FOV 18 cm · SID 100 cm</div>
+        <div id="tip" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-ctrl" aria-label="Comandos do arco em C">
+    <div class="ph"><h2>Arco em C</h2></div>
+    <div class="ctrl-body">
+      <div class="read">
+        <div><span class="lab">Rotação</span><b id="rRot">LAO 30°</b></div>
+        <div><span class="lab">Angulação</span><b id="rAng">CRA 20°</b></div>
+      </div>
+      <div class="sl">
+        <label class="lab" for="sRot">Rotação RAO / LAO</label>
+        <input type="range" id="sRot" min="-90" max="90" step="1" value="30">
+        <div class="ends"><span>RAO 90</span><span>AP</span><span>LAO 90</span></div>
+      </div>
+      <div class="sl">
+        <label class="lab" for="sAng">Angulação CAU / CRA</label>
+        <input type="range" id="sAng" min="-45" max="45" step="1" value="20">
+        <div class="ends"><span>CAU 45</span><span>0</span><span>CRA 45</span></div>
+      </div>
+      <div class="presets">
+        <span class="lab" id="preL1">Coronária esquerda</span>
+        <div class="pgrid" id="preG1"></div>
+      </div>
+      <div class="presets">
+        <span class="lab" id="preL2">Coronária direita</span>
+        <div class="pgrid" id="preG2"></div>
+      </div>
+      <p class="hint" id="hint"></p>
+    </div>
+  </section>
+
+  <section class="panel" id="p-map" aria-label="Mapa de projeções">
+    <div class="ph"><h2>Mapa de projeções</h2><span class="sub" id="mapT"></span></div>
+    <div class="map-wrap"><canvas id="map" aria-label="Mapa de projeções: arraste para mover o arco"></canvas></div>
+    <div class="legend">
+      <span>Comprimento projetado do segmento:</span>
+      <span><i class="sw" style="background:var(--bad)"></i>&lt; 60%</span>
+      <span><i class="sw" style="background:var(--warn)"></i>60–85%</span>
+      <span><i class="sw" style="background:var(--good)"></i>&gt; 85%</span>
+      <span><i class="sw" style="background:var(--accent);border-radius:50%"></i>arco</span>
+    </div>
+  </section>
+
+  <section class="panel" id="p-room" aria-label="Posição do arco na sala">
+    <div class="ph"><h2>Sala</h2><span class="sub">vista do operador, lado esquerdo</span></div>
+    <div class="room" id="room"><div id="rlbls"></div></div>
+  </section>
+
+  <section class="panel" id="p-seg" aria-label="Segmentos">
+    <div class="ph"><h2>Segmentos</h2><span class="sub" id="segSub">numeração SYNTAX</span></div>
+    <div class="seg-body">
+      <div class="chips" id="chips"></div>
+      <div class="info" id="info"></div>
+    </div>
+  </section>
+</main>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const V3=THREE.Vector3, DEG=Math.PI/180;
+const v3=(x,y,z)=>new V3(x,y,z);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* ---------- estado ---------- */
+const S={mode:null,lao:30,cra:20,inj:'B',dom:'R',ramus:false,det:false,skel:true,see:false,lbl:true,col:false,fs:false,sel:'7',dsa:true,fetal:false,a1h:false};
+const MEM={cardio:{lao:30,cra:20,inj:'B',sel:'7'},neuro:{lao:0,cra:0,inj:'ICA-E',sel:'M1-E'}};
+const C_TO=-15; // angulação da AP transorbitária no modelo
+
+/* =====================================================================
+   CORONÁRIAS — geometria (cm, x = esquerda do doente, y = cranial, z = anterior)
+   ===================================================================== */
+const W=new V3(0.62,-0.42,0.66).normalize();
+const E1=new V3(0,0,1).sub(W.clone().multiplyScalar(W.z)).normalize();
+const E2=new V3().crossVectors(E1,W).normalize();
+const HL=11, HR=4.6;
+function rprof(h){
+  if(h<0) return HR*0.86;
+  if(h<0.22) return HR*(0.86+0.14*Math.sin(h/0.22*Math.PI/2));
+  return HR*Math.sqrt(Math.max(0,1-((h-0.22)/0.78)**2));
+}
+const center=h=>W.clone().multiplyScalar(h*HL);
+const radial=th=>E1.clone().multiplyScalar(Math.cos(th*DEG)).add(E2.clone().multiplyScalar(Math.sin(th*DEG)));
+function surf(h,th,k=1,lift=0.16){return center(h).add(radial(th).multiplyScalar(rprof(h)*k+(k>=1?lift:0)));}
+const P=s=>s instanceof V3?s.clone():surf(s[0],s[1],s[2]===undefined?1:s[2]);
+
+const AO=surf(-0.16,35,0.7,0);
+const LMO=AO.clone().add(new V3(0.99,0.05,0.11).normalize().multiplyScalar(1.4));
+const RCO=AO.clone().add(new V3(-0.25,0,1).normalize().multiplyScalar(1.4));
+const AOP=[new V3(2.2,-14,-7.2),new V3(2.3,-2,-7.3),new V3(2.1,4,-6.7),new V3(1.3,6.6,-4.5),new V3(-0.1,7.6,-2.1),new V3(-1.4,6.9,-0.2),new V3(-1.8,5.0,0.5),AO.clone().add(new V3(0,0.3,0))];
+
+const SEG_C={
+ '5':{n:'Tronco comum',en:'Left main',t:'L'},
+ '6':{n:'DA proximal',en:'LAD proximal',t:'L'},
+ '7':{n:'DA média',en:'LAD mid',t:'L'},
+ '8':{n:'DA distal',en:'LAD distal / apical',t:'L'},
+ '9':{n:'1.ª diagonal',en:'First diagonal',t:'L'},
+ '10':{n:'2.ª diagonal',en:'Second diagonal',t:'L'},
+ '11':{n:'Cx proximal',en:'LCx proximal',t:'L'},
+ '12':{n:'Ramo intermédio',en:'Ramus intermedius',t:'L'},
+ '12a':{n:'1.ª marginal obtusa',en:'Obtuse marginal 1',t:'L'},
+ '12b':{n:'2.ª marginal obtusa',en:'Obtuse marginal 2',t:'L'},
+ '13':{n:'Cx distal',en:'LCx distal',t:'L'},
+ '14':{n:'Posterolateral (Cx)',en:'Left posterolateral',t:'L'},
+ '15':{n:'Descendente posterior (Cx)',en:'Left PDA',t:'L'},
+ '1':{n:'CD proximal',en:'RCA proximal',t:'R'},
+ '2':{n:'CD média',en:'RCA mid',t:'R'},
+ '3':{n:'CD distal',en:'RCA distal',t:'R'},
+ '4':{n:'Descendente posterior (CD)',en:'Right PDA',t:'R'},
+ '16':{n:'Posterolateral (CD)',en:'Right posterolateral',t:'R'}
+};
+Object.keys(SEG_C).forEach(k=>{const s=SEG_C[k];s.code=k;s.grp=s.t==='L'?'Coronária esquerda':'Coronária direita';s.ctx=s.t==='L'?'coronária esquerda':'coronária direita';});
+const ORDER_C=['5','6','7','8','9','10','11','12','12a','12b','13','14','15','1','2','3','4','16'];
+const PRE_C=[
+ {id:'L-RAOcau',g:'L',n:'RAO caudal',a:-30,c:-25,f:'TC, Cx e marginais'},
+ {id:'L-RAOcra',g:'L',n:'RAO cranial',a:-30,c:30,f:'DA média e distal'},
+ {id:'L-APcra',g:'L',n:'AP cranial',a:0,c:35,f:'DA média, diagonais'},
+ {id:'L-APcau',g:'L',n:'AP caudal',a:0,c:-30,f:'TC distal, Cx proximal'},
+ {id:'L-LAOcra',g:'L',n:'LAO cranial',a:45,c:30,f:'DA, diagonais, septais'},
+ {id:'L-spider',g:'L',n:'Aranha',a:45,c:-35,f:'Bifurcação do TC'},
+ {id:'L-LAT',g:'L',n:'Lateral',a:90,c:0,f:'DA média e distal'},
+ {id:'L-AP',g:'L',n:'AP',a:0,c:0,f:'TC ostial'},
+ {id:'R-LAO',g:'R',n:'LAO',a:30,c:0,f:'CD proximal e média'},
+ {id:'R-RAO',g:'R',n:'RAO',a:-30,c:0,f:'CD média, DP'},
+ {id:'R-LAOcra',g:'R',n:'LAO cranial',a:30,c:20,f:'Crux, DP e PL'},
+ {id:'R-APcra',g:'R',n:'AP cranial',a:0,c:30,f:'DP e PL'},
+ {id:'R-LAT',g:'R',n:'Lateral',a:90,c:0,f:'CD média'}
+];
+const REFS_C={'5':['L-AP','L-APcau','L-spider','L-RAOcau'],'6':['L-RAOcra','L-LAOcra','L-RAOcau'],'7':['L-RAOcra','L-LAOcra','L-APcra'],'8':['L-RAOcra','L-LAT','L-APcra'],
+ '9':['L-LAOcra','L-RAOcra'],'10':['L-LAOcra','L-RAOcra'],'11':['L-RAOcau','L-APcau','L-spider'],'12':['L-RAOcau','L-LAOcra'],'12a':['L-RAOcau','L-spider'],'12b':['L-RAOcau','L-spider'],
+ '13':['L-RAOcau','L-spider'],'14':['L-RAOcau','L-LAOcra'],'15':['L-RAOcau','L-LAOcra'],'1':['R-LAO','R-RAO'],'2':['R-LAO','R-RAO','R-LAT'],'3':['R-LAO','R-LAOcra'],
+ '4':['R-RAO','R-APcra','R-LAOcra'],'16':['R-LAOcra','R-APcra']};
+
+function defsCardio(){
+  const d=S.dom, D=[];
+  const LMB=surf(0.06,62);
+  D.push({id:'LM',t:'L',pts:[LMO,LMO.clone().lerp(LMB,.5).add(new V3(0,.05,.15)),LMB],r:[.22,.2],segs:[[0,1,'5']],lb:'TC',lt:.5});
+  D.push({id:'LAD',t:'L',from:['LM',1],pts:[[.13,57],[.25,53],[.4,51],[.55,49],[.7,47],[.82,45],[.92,43],[.985,32],[.975,245],[.93,252]],r:[.18,.05],segs:[[0,.2,'6'],[.2,.55,'7'],[.55,1,'8']],lb:'DA',lt:.45});
+  D.push({id:'D1',t:'L',from:['LAD',.17],pts:[[.32,68],[.47,84],[.63,95],[.76,100]],r:[.11,.04],segs:[[0,1,'9']],lb:'D1',lt:.6});
+  D.push({id:'D2',t:'L',from:['LAD',.4],pts:[[.58,64],[.72,77],[.86,85]],r:[.085,.035],segs:[[0,1,'10']],lb:'D2',lt:.7});
+  [.1,.22,.34,.46].forEach((t,i)=>{const h=.06+t*1.063;D.push({id:'S'+(i+1),t:'L',from:['LAD',t],pts:[[h+.06,52,.6],[h+.12,52,.36]],r:[.06,.03],nm:'Ramo septal'});});
+  if(S.ramus) D.push({id:'RI',t:'L',from:['LM',1],pts:[[.17,74],[.33,85],[.5,92]],r:[.12,.045],segs:[[0,1,'12']],lb:'RI',lt:.6});
+  let cx,om1,om2,b;
+  if(d==='R'){cx=[[.035,76],[.035,95],[.045,118],[.06,142],[.08,165],[.1,186],[.14,200]];om1=.34;om2=.72;b=[.17,.07];}
+  else if(d==='L'){cx=[[.035,76],[.035,95],[.045,118],[.06,142],[.07,168],[.065,195],[.06,222],[.06,252]];om1=.24;om2=.5;b=[.2,.11];}
+  else {cx=[[.035,76],[.035,95],[.045,118],[.06,142],[.07,168],[.07,195],[.07,222],[.09,238]];om1=.26;om2=.56;b=[.19,.08];}
+  D.push({id:'LCx',t:'L',from:['LM',1],pts:cx,r:b,segs:[[0,om1,'11'],[om1,1,'13']],lb:'Cx',lt:Math.min(.9,om1+.25)});
+  D.push({id:'OM1',t:'L',from:['LCx',om1],pts:[[.2,120],[.38,126],[.56,130]],r:[.11,.045],segs:[[0,1,'12a']],lb:'MO1',lt:.7});
+  D.push({id:'OM2',t:'L',from:['LCx',om2],pts:[[.25,166],[.44,171],[.6,174]],r:[.095,.04],segs:[[0,1,'12b']],lb:'MO2',lt:.7});
+  if(d==='L'){
+    D.push({id:'PLL',t:'L',from:['LCx',.8],pts:[[.22,222],[.42,220],[.58,218]],r:[.1,.04],segs:[[0,1,'14']],lb:'PL',lt:.7});
+    D.push({id:'PDL',t:'L',from:['LCx',1],pts:[[.18,253],[.38,254],[.58,254],[.74,254]],r:[.09,.04],segs:[[0,1,'15']],lb:'DP',lt:.6});
+  } else if(d==='C'){
+    D.push({id:'PLL',t:'L',from:['LCx',1],pts:[[.24,238],[.44,236],[.6,233]],r:[.09,.035],segs:[[0,1,'14']],lb:'PL',lt:.7});
+  }
+  const RCm=RCO.clone().add(new V3(-0.15,-0.15,0.5));
+  if(d==='L'){
+    D.push({id:'RCA',t:'R',pts:[RCO,RCm,[0,15],[.02,0],[.03,-25],[.05,-50],[.12,-62],[.25,-66]],r:[.14,.05],segs:[[0,.45,'1'],[.45,1,'2']],lb:'CD',lt:.4});
+  } else {
+    D.push({id:'RCA',t:'R',pts:[RCO,RCm,[0,15],[.02,0],[.03,-25],[.04,-50],[.05,-72],[.05,-90],[.05,-106]],r:[.19,.11],segs:[[0,.32,'1'],[.32,.64,'2'],[.64,1,'3']],lb:'CD',lt:.3});
+    D.push({id:'PDA',t:'R',from:['RCA',1],pts:[[.2,-104],[.4,-103],[.6,-103],[.77,-104]],r:[.1,.045],segs:[[0,1,'4']],lb:'DP',lt:.6});
+    if(d==='R') D.push({id:'PLR',t:'R',from:['RCA',1],pts:[[.06,-122],[.07,-138],[.16,-146],[.34,-150]],r:[.11,.045],segs:[[0,1,'16']],lb:'PL',lt:.75});
+    D.push({id:'AM2',t:'R',from:['RCA',.7],pts:[[.3,-72],[.5,-74]],r:[.06,.025],nm:'Marginal aguda'});
+  }
+  D.push({id:'CON',t:'R',from:['RCA',.04],pts:[[-.04,24],[.05,31],[.16,35]],r:[.055,.025],nm:'Ramo do cone'});
+  D.push({id:'SAN',t:'R',from:['RCA',.08],pts:[[-.16,8,.98],[-.3,-5,.9]],r:[.045,.025],nm:'Artéria do nó sinusal'});
+  D.push({id:'AM1',t:'R',from:['RCA',d==='L'?.55:.45],pts:[[.25,-38],[.45,-42],[.62,-44]],r:[.075,.03],nm:'Marginal aguda'});
+  D.forEach(v=>{v.fill=(S.inj==='B'||S.inj===v.t);});
+  return D;
+}
+function catheterCardio(s){
+  const pts=AOP.slice(0,-1).map(p=>p.clone());
+  if(s==='L'){pts.push(AO.clone().add(new V3(-0.3,0.9,0.1)),AO.clone().add(new V3(0.7,0.3,0.05)),LMO.clone());}
+  else{pts.push(AO.clone().add(new V3(-0.5,0.8,0.3)),AO.clone().add(new V3(-0.3,0.2,0.9)),RCO.clone());}
+  return new THREE.CatmullRomCurve3(pts,false,'centripetal');
+}
+
+/* =====================================================================
+   CEREBRAL — geometria (cm, origem na sela turca; LOM perpendicular à mesa)
+   ===================================================================== */
+const BRC=v3(0,2.1,-0.7), BRR=[6.4,7.1,8.5];
+const brainX=(y,z)=>BRR[0]*Math.sqrt(Math.max(0.04,1-((y-BRC.y)/BRR[1])**2-((z-BRC.z)/BRR[2])**2));
+const SEGN={
+ C1:['Cervical','Cervical segment'],C2:['Petroso','Petrous segment'],C3:['Lácero','Lacerum segment'],C4:['Cavernoso','Cavernous segment'],
+ C5:['Clinoideu','Clinoid segment'],C6:['Oftálmico','Ophthalmic segment'],C7:['Comunicante','Communicating segment'],
+ Oft:['Artéria oftálmica','Ophthalmic artery'],AComP:['Comunicante posterior','Posterior communicating artery'],CorA:['Coroideia anterior','Anterior choroidal artery'],
+ A1:['ACA pré-comunicante','A1 precommunicating'],AComA:['Comunicante anterior','Anterior communicating artery'],A2:['ACA infracalosa','A2 infracallosal'],
+ A3:['ACA pré-calosa','A3 precallosal'],'A4–A5':['Pericalosa','A4–A5 supra/postcallosal'],M1:['ACM esfenoidal','M1 sphenoidal'],M2:['ACM insular','M2 insular'],
+ ACC:['Carótida comum','Common carotid artery'],ACE:['Carótida externa','External carotid artery'],AFa:['Facial','Facial artery'],AOc:['Occipital','Occipital artery'],
+ AMx:['Maxilar','Maxillary artery'],AMM:['Meníngea média','Middle meningeal artery'],ATS:['Temporal superficial','Superficial temporal artery'],
+ V1:['Vertebral pré-foraminal','V1 preforaminal'],V2:['Vertebral foraminal','V2 foraminal'],V3:['Vertebral atlântica','V3 atlantic, extradural'],V4:['Vertebral intradural','V4 intradural'],
+ PICA:['Cerebelosa posteroinferior','Posterior inferior cerebellar artery'],AICA:['Cerebelosa anteroinferior','Anterior inferior cerebellar artery'],
+ ACS:['Cerebelosa superior','Superior cerebellar artery'],AB:['Basilar','Basilar artery'],
+ P1:['ACP pré-comunicante','P1 precommunicating'],P2:['ACP ambiens','P2 ambient'],'P3–P4':['ACP quadrigeminal e cortical','P3–P4']
+};
+const GRP={C1:'ica',C2:'ica',C3:'ica',C4:'ica',C5:'ica',C6:'ica',C7:'ica',Oft:'ica',AComP:'ica',CorA:'ica',A1:'aca',AComA:'aca',A2:'aca',A3:'aca','A4–A5':'aca',M1:'mca',M2:'mca',
+ ACC:'eca',ACE:'eca',AFa:'eca',AOc:'eca',AMx:'eca',AMM:'eca',ATS:'eca',V1:'va',V2:'va',V3:'va',V4:'va',PICA:'va',AICA:'bas',ACS:'bas',AB:'bas',P1:'pca',P2:'pca','P3–P4':'pca'};
+const GRPN={ica:'Carótida interna',aca:'Cerebral anterior',mca:'Cerebral média',eca:'Carótidas comum e externa',va:'Vertebral',bas:'Basilar e ramos',pca:'Cerebral posterior'};
+const REFS_N={C1:['N-LAT','N-AP'],C2:['N-AP','N-LAT'],C3:['N-LAT'],C4:['N-LAT','N-TO'],C5:['N-LAT','N-OBL'],C6:['N-LAT','N-OBL'],C7:['N-OBL','N-LAT'],Oft:['N-LAT'],
+ AComP:['N-LAT','N-OBL'],CorA:['N-LAT'],A1:['N-AP','N-TO'],AComA:['N-OBL','N-TO'],A2:['N-LAT','N-AP'],A3:['N-LAT'],'A4–A5':['N-LAT'],M1:['N-AP','N-TO'],M2:['N-OBL','N-AP'],
+ ACC:['N-LAT','N-AP'],ACE:['N-LAT','N-AP'],AFa:['N-LAT'],AOc:['N-LAT'],AMx:['N-LAT'],AMM:['N-LAT','N-AP'],ATS:['N-LAT'],
+ V1:['P-AP'],V2:['P-AP','P-LAT'],V3:['P-AP','P-LAT'],V4:['P-TOW','P-AP'],PICA:['P-LAT','P-AP'],AICA:['P-TOW','P-AP'],ACS:['P-TOW','P-LAT'],AB:['P-TOW','P-LAT'],
+ P1:['P-TOW'],P2:['P-TOW','P-LAT'],'P3–P4':['P-LAT','P-TOW']};
+
+function defsNeuro(){
+  const [iv,is]=S.inj.split('-');
+  const D=[],SEG={},ORDER=[];
+  const key=(code,X)=>{const k=X?code+'-'+X:code;if(!SEG[k]){const nm=SEGN[code];
+    SEG[k]={code,n:nm[0],en:nm[1],grp:GRPN[GRP[code]],t:GRP[code]==='eca'?'ext':(['va','bas','pca'].includes(GRP[code])?'post':'ant'),side:X||'',
+      ctx:GRPN[GRP[code]].toLowerCase()+(X?' '+(X==='E'?'esquerda':'direita'):'')};ORDER.push(k);}return k;};
+  const anyICA=iv==='ICA'||iv==='CCA';
+  const sides=['D','E'];
+  for(const X of sides){
+    const sx=X==='E'?1:-1, f=(x,y,z)=>v3(sx*x,y,z), bs=(y,z,k=.98)=>v3(sx*brainX(y,z)*k,y,z);
+    const cca=iv==='CCA'&&is===X, ica=anyICA&&is===X, id=c=>c+'-'+X;
+    D.push({id:id('CCA'),t:'ext',pts:[f(2.6,-15,1.5),f(2.45,-12,1.0),f(2.3,-9.0,0.3)],r:[.32,.3],segs:[[0,1,key('ACC',X)]],fill:cca,lb:'ACC',lt:.3});
+    D.push({id:id('ICA'),t:'ant',from:[id('CCA'),'end'],pts:[f(2.5,-7.5,-0.3),f(2.7,-5.6,-1.0),f(2.85,-3.9,-1.5),f(2.95,-3.0,-1.55),f(2.45,-2.75,-0.95),f(1.9,-2.5,-0.45),
+      f(1.75,-1.75,-0.4),f(1.65,-1.0,-0.25),f(1.6,-0.85,0.7),f(1.55,-0.55,1.5),f(1.5,0.1,1.85),f(1.55,0.75,1.5),f(1.7,1.15,1.0),f(1.95,1.5,0.7)],r:[.24,.17],
+      segs:[['p0','p3',key('C1',X)],['p3','p6',key('C2',X)],['p6','p7',key('C3',X)],['p7','p11',key('C4',X)],['p11','p12',key('C5',X)],['p12','p13',key('C6',X)],['p13','p14',key('C7',X)]],
+      fill:ica,lb:'ACI',lt:.2});
+    D.push({id:id('OFT'),t:'ant',from:[id('ICA'),'p12'],pts:[f(2.2,0.95,2.4),f(2.8,0.75,3.6),f(3.1,0.85,4.9),f(2.9,1.1,5.8)],r:[.06,.035],segs:[[0,1,key('Oft',X)]],fill:ica});
+    const fetal=S.fetal&&X==='E';
+    D.push({id:id('PCOM'),t:'ant',from:[id('ICA'),'p13'],pts:[f(1.65,1.15,-0.3),f(1.35,1.0,-1.45)],r:fetal?[.12,.11]:[.05,.045],segs:[[0,1,key('AComP',X)]],fill:ica});
+    D.push({id:id('CHA'),t:'ant',from:[id('ICA'),'p13.5'],pts:[f(2.5,1.6,0.25),f(3.1,1.9,-0.7),f(3.5,2.4,-1.7)],r:[.045,.03],segs:[[0,1,key('CorA',X)]],fill:ica});
+    const hypo=S.a1h&&X==='D';
+    D.push({id:id('A1'),t:'ant',from:[id('ICA'),'end'],pts:[f(1.05,1.8,1.35),f(0.25,1.9,1.8)],r:hypo?[.045,.04]:[.11,.1],segs:[[0,1,key('A1',X)]],fill:ica});
+    D.push({id:id('M1'),t:'ant',from:[id('ICA'),'end'],pts:[f(2.8,1.6,0.75),f(3.8,1.75,0.7),f(4.6,1.9,0.5)],r:[.15,.13],segs:[[0,1,key('M1',X)]],fill:ica,lb:'ACM',lt:.55});
+    [[.2,2.3,2.6,0.7,2.2,3.3,0.5],[.35,2.9,2.6,0.75,2.9,3.4,0.5],[.5,3.4,2.7,0.7,3.5,3.4,0.4]].forEach((q,i)=>
+      D.push({id:id('LSA'+i),t:'ant',from:[id('M1'),q[0]],pts:[f(q[1],q[2],q[3]),f(q[4],q[5],q[6])],r:[.035,.02],fill:ica,nm:'Lenticuloestriadas'}));
+    D.push({id:id('ATA'),t:'ant',from:[id('M1'),.65],pts:[f(4.4,1.2,1.4),bs(0.6,2.4),bs(-0.6,1.4)],r:[.055,.025],fill:ica,nm:'Temporal anterior'});
+    D.push({id:id('M2S'),t:'ant',from:[id('M1'),'end'],pts:[f(4.95,2.5,0.75),f(5.05,3.4,0.45),f(5.05,4.3,-0.2),f(5.0,4.8,-1.2)],r:[.11,.08],segs:[[0,1,key('M2',X)]],fill:ica});
+    D.push({id:id('M2I'),t:'ant',from:[id('M1'),'end'],pts:[f(4.95,1.8,-0.3),f(5.05,2.2,-1.4),f(5.05,2.8,-2.5),f(5.0,3.4,-3.4)],r:[.1,.07],segs:[[0,1,key('M2',X)]],fill:ica});
+    [[id('M2S'),.25,[5.8,3.0,1.2],[[4.2,3.4],[6.2,3.6],[7.6,2.6]],'Pré-frontal'],
+     [id('M2S'),.55,[5.8,4.1,0.6],[[5.6,0.8],[7.4,0.4],[8.6,-0.6]],'Pré-central e central'],
+     [id('M2S'),1,[5.7,5.0,-1.3],[[6.0,-2.0],[7.4,-3.2],[8.0,-4.6]],'Parietal'],
+     [id('M2I'),.4,[5.8,1.9,-1.6],[[1.2,-1.4],[0.0,-2.6]],'Temporal média'],
+     [id('M2I'),.75,[5.8,2.6,-2.8],[[1.6,-3.8],[0.6,-5.4]],'Temporal posterior'],
+     [id('M2I'),1,[5.7,3.6,-3.8],[[4.4,-4.8],[4.8,-6.4],[4.2,-7.6]],'Angular']].forEach((b,i)=>
+      D.push({id:id('MB'+i),t:'ant',from:[b[0],b[1]],pts:[f(...b[2])].concat(b[3].map(q=>bs(q[0],q[1]))),r:[.06,.025],fill:ica,nm:b[4]}));
+    // carótida externa
+    D.push({id:id('ECA'),t:'ext',from:[id('CCA'),'end'],pts:[f(2.1,-8.4,0.9),f(2.5,-7.0,1.2),f(3.1,-5.4,0.6),f(3.7,-3.9,-0.3),f(4.3,-2.9,-0.7)],r:[.18,.14],segs:[[0,1,key('ACE',X)]],fill:cca,lb:'ACE',lt:.45});
+    D.push({id:id('STH'),t:'ext',from:[id('ECA'),.06],pts:[f(1.8,-9.3,1.7),f(1.6,-10.8,2.2),f(1.5,-12,2.0)],r:[.06,.04],fill:cca,nm:'Tiroideia superior'});
+    D.push({id:id('LIN'),t:'ext',from:[id('ECA'),.15],pts:[f(1.9,-7.9,2.4),f(1.5,-7.2,3.6),f(1.2,-6.6,4.8)],r:[.07,.04],fill:cca,nm:'Lingual'});
+    D.push({id:id('FAC'),t:'ext',from:[id('ECA'),.2],pts:[f(2.6,-7.6,2.2),f(3.8,-8.0,3.4),f(3.9,-6.6,4.6),f(3.4,-4.6,5.6),f(2.2,-2.6,6.6)],r:[.07,.04],segs:[[0,1,key('AFa',X)]],fill:cca});
+    D.push({id:id('OCC'),t:'ext',from:[id('ECA'),.3],pts:[f(3.1,-6.0,-1.2),f(4.3,-5.2,-3.6),f(4.2,-3.6,-6.4),f(3.4,-1.0,-8.6),f(2.6,1.6,-9.6)],r:[.07,.035],segs:[[0,1,key('AOc',X)]],fill:cca});
+    D.push({id:id('IMA'),t:'ext',from:[id('ECA'),'end'],pts:[f(3.9,-2.9,0.3),f(3.4,-3.0,1.6),f(2.8,-2.8,2.9),f(2.0,-2.6,4.0),f(1.3,-2.4,4.8)],r:[.1,.05],segs:[[0,1,key('AMx',X)]],fill:cca});
+    D.push({id:id('MMA'),t:'ext',from:[id('IMA'),.2],pts:[f(3.0,-2.3,0.0),f(3.9,-1.4,0.3),f(5.2,0.2,0.7),f(6.0,2.4,0.6),f(6.1,4.6,1.4)],r:[.065,.04],segs:[[0,1,key('AMM',X)]],fill:cca});
+    D.push({id:id('MMP'),t:'ext',from:[id('MMA'),.45],pts:[f(6.0,1.0,-1.4),f(6.2,2.6,-3.4),f(5.9,4.2,-5.2)],r:[.045,.03],fill:cca,nm:'Meníngea média, ramo parietal'});
+    D.push({id:id('STA'),t:'ext',from:[id('ECA'),'end'],pts:[f(5.4,-2.2,-0.6),f(6.4,-0.8,-0.5),f(7.2,1.2,-0.5),f(7.6,2.8,-0.4)],r:[.08,.06],segs:[[0,1,key('ATS',X)]],fill:cca});
+    D.push({id:id('STF'),t:'ext',from:[id('STA'),'end'],pts:[f(7.5,4.0,1.4),f(6.8,5.6,3.8),f(5.0,7.2,5.8)],r:[.05,.03],fill:cca,nm:'Temporal superficial, ramo frontal'});
+    D.push({id:id('STP'),t:'ext',from:[id('STA'),'end'],pts:[f(7.8,4.6,-1.2),f(7.5,6.8,-2.6),f(6.4,8.8,-3.4)],r:[.05,.03],fill:cca,nm:'Temporal superficial, ramo parietal'});
+  }
+  // comunicante anterior e ACA distal
+  const acSide=anyICA?is:'E', acOther=acSide==='E'?'D':'E', so=acOther==='E'?1:-1;
+  D.push({id:'ACOA',t:'ant',from:['A1-'+acSide,'end'],pts:[v3(0,1.95,1.9),v3(so*0.25,1.9,1.8)],r:[.05,.05],segs:[[0,1,key('AComA')]],fill:anyICA});
+  for(const X of sides){
+    const sx=X==='E'?1:-1, f=(x,y,z)=>v3(sx*x,y,z), id=c=>c+'-'+X;
+    const icaE=anyICA&&is==='E', icaX=anyICA&&is===X;
+    let from=[id('A1'),'end'], fill=icaX;
+    if(S.a1h&&X==='D'){fill=icaE;if(icaE)from=['ACOA','end'];}
+    if(S.a1h&&X==='E')fill=icaE;
+    D.push({id:id('A2'),t:'ant',from,pts:[f(0.3,2.6,2.3),f(0.32,3.4,2.9)],r:[.1,.09],segs:[[0,1,key('A2',X)]],fill});
+    D.push({id:id('A3'),t:'ant',from:[id('A2'),'end'],pts:[f(0.32,4.3,3.35),f(0.3,5.2,3.2),f(0.3,5.8,2.4)],r:[.09,.08],segs:[[0,1,key('A3',X)]],fill,lb:'ACA',lt:.35});
+    D.push({id:id('A45'),t:'ant',from:[id('A3'),'end'],pts:[f(0.3,6.2,1.0),f(0.3,6.4,-0.8),f(0.3,6.1,-2.6),f(0.3,5.5,-4.0)],r:[.08,.04],segs:[[0,1,key('A4–A5',X)]],fill});
+    D.push({id:id('CMA'),t:'ant',from:[id('A3'),.3],pts:[f(0.4,5.6,4.3),f(0.4,7.1,3.6),f(0.45,8.1,1.8),f(0.45,8.6,-0.4),f(0.45,8.4,-2.6)],r:[.065,.03],fill,nm:'Calosomarginal'});
+    D.push({id:id('OFA'),t:'ant',from:[id('A2'),.2],pts:[f(0.45,2.3,3.4),f(0.7,1.9,4.8),f(0.9,1.8,5.8)],r:[.04,.02],fill,nm:'Orbitofrontal'});
+    D.push({id:id('FPA'),t:'ant',from:[id('A2'),.8],pts:[f(0.4,4.0,4.4),f(0.45,4.4,6.2),f(0.5,4.4,7.2)],r:[.045,.025],fill,nm:'Frontopolar'});
+  }
+  // circulação posterior
+  const vaInj=iv==='VA', vaSide=vaInj?is:'E';
+  for(const X of [vaSide,vaSide==='E'?'D':'E']){
+    const sx=X==='E'?1:-1, f=(x,y,z)=>v3(sx*x,y,z), id=c=>c+'-'+X;
+    const fill=vaInj?(X===is?true:{retro:'p7',base:'VA-'+is}):false;
+    D.push({id:id('VA'),t:'post',pts:[f(3.4,-16.5,-0.2),f(3.0,-14.5,-1.2),f(2.6,-12.6,-2.4),f(2.55,-9.5,-2.8),f(2.5,-7.0,-3.0),f(3.25,-5.6,-3.3),f(3.0,-4.9,-4.6),
+      f(2.0,-4.5,-5.0),f(1.3,-4.0,-4.1),f(0.7,-3.45,-3.4),v3(0,-3.0,-3.0)],r:[.2,.17],
+      segs:[['p0','p2',key('V1',X)],['p2','p4',key('V2',X)],['p4','p7',key('V3',X)],['p7','p10',key('V4',X)]],fill,lb:'AV',lt:.4});
+    D.push({id:id('PICA'),t:'post',from:[id('VA'),'p8.5'],pts:[f(1.6,-4.6,-3.9),f(1.4,-5.3,-4.6),f(0.9,-4.6,-5.5),f(0.6,-3.7,-5.9),f(1.3,-3.3,-6.9),f(2.6,-3.8,-7.3),f(3.6,-4.4,-6.8)],
+      r:[.07,.04],segs:[[0,1,key('PICA',X)]],fill:vaInj,lb:'PICA',lt:.55});
+  }
+  D.push({id:'BA',t:'post',from:['VA-'+vaSide,'end'],pts:[v3(0,-1.6,-2.35),v3(0,-0.2,-1.95),v3(0,0.85,-1.6)],r:[.18,.16],segs:[[0,1,key('AB')]],fill:vaInj,lb:'AB',lt:.45});
+  for(const X of sides){
+    const sx=X==='E'?1:-1, f=(x,y,z)=>v3(sx*x,y,z), id=c=>c+'-'+X;
+    const fetal=S.fetal&&X==='E', icaX=anyICA&&is===X;
+    D.push({id:id('AICA'),t:'post',from:['BA',.15],pts:[f(1.3,-2.5,-2.9),f(2.4,-2.5,-3.5),f(3.1,-2.8,-4.4),f(3.0,-3.4,-5.2)],r:[.05,.03],segs:[[0,1,key('AICA',X)]],fill:vaInj});
+    D.push({id:id('SCA'),t:'post',from:['BA',.9],pts:[f(0.9,0.55,-1.8),f(1.9,0.6,-2.5),f(2.5,0.45,-3.6),f(2.2,0.1,-4.9),f(1.3,-0.2,-6.0)],r:[.07,.04],segs:[[0,1,key('ACS',X)]],fill:vaInj,lb:'ACS',lt:.6});
+    D.push({id:id('P1'),t:'post',from:['BA','end'],pts:[f(0.7,0.95,-1.55),f(1.35,1.0,-1.45)],r:fetal?[.04,.04]:[.12,.11],segs:[[0,1,key('P1',X)]],fill:vaInj});
+    const pf=fetal?icaX:vaInj;
+    D.push({id:id('P2'),t:'post',from:fetal?[id('PCOM'),'end']:[id('P1'),'end'],pts:[f(2.0,1.1,-2.0),f(2.6,1.4,-2.9),f(2.75,1.8,-4.0),f(2.45,2.2,-5.0)],r:[.11,.09],segs:[[0,1,key('P2',X)]],fill:pf,lb:'ACP',lt:.6});
+    D.push({id:id('P3'),t:'post',from:[id('P2'),'end'],pts:[f(1.8,2.8,-6.2),f(1.2,3.1,-7.4),f(0.9,3.2,-8.2)],r:[.08,.05],segs:[[0,1,key('P3–P4',X)]],fill:pf});
+    D.push({id:id('POA'),t:'post',from:[id('P3'),.3],pts:[f(1.4,4.0,-6.6),f(1.0,5.2,-7.0),f(0.8,6.2,-6.8)],r:[.05,.03],fill:pf,nm:'Parieto-occipital'});
+    D.push({id:id('ITA'),t:'post',from:[id('P2'),.5],pts:[f(3.5,0.6,-3.0),f(4.1,0.1,-4.4),f(4.3,0.3,-5.8)],r:[.05,.03],fill:pf,nm:'Temporal inferior (ACP)'});
+  }
+  // ordem dos segmentos para os chips
+  const want=['C1','C2','C3','C4','C5','C6','C7','Oft','AComP','CorA','A1','AComA','A2','A3','A4–A5','M1','M2','ACC','ACE','AFa','AOc','AMx','AMM','ATS','V1','V2','V3','V4','PICA','AB','AICA','ACS','P1','P2','P3–P4'];
+  const ord=[];want.forEach(c=>['D','E',''].forEach(X=>{const k=X?c+'-'+X:c;if(SEG[k])ord.push(k);}));
+  return {D,SEG,ORDER:ord};
+}
+function catheterNeuro(){
+  const [iv,is]=S.inj.split('-'),sx=is==='E'?1:-1,pts=[];
+  const add=(v,t0,t1,n)=>{for(let i=0;i<=n;i++)pts.push(v.curve.getPointAt(t0+(t1-t0)*i/n));};
+  if(iv==='VA'){pts.push(v3(sx*1.5,-26,-0.5),v3(sx*3.2,-19.5,-0.4));const va=M.by['VA-'+is];add(va,0,resolveT(va,'p2')+0.05,10);}
+  else{pts.push(v3(sx*0.8,-26,-0.4),v3(sx*2.1,-19.5,1.3));const cca=M.by['CCA-'+is];add(cca,0,iv==='CCA'?0.45:1,10);if(iv==='ICA')add(M.by['ICA-'+is],0.02,0.11,5);}
+  const out=[pts[0]];for(let i=1;i<pts.length;i++)if(pts[i].distanceTo(out[out.length-1])>0.15)out.push(pts[i]);
+  return new THREE.CatmullRomCurve3(out,false,'centripetal');
+}
+function catheterCurves(){
+  if(S.mode==='cardio')return ['L','R'].filter(s=>S.inj==='B'||S.inj===s).map(catheterCardio);
+  return [catheterNeuro()];
+}
+
+/* ---------- construção comum ---------- */
+let M=null;
+function resolveT(v,t){
+  if(typeof t==='number')return t; if(t==='end')return 1;
+  const idx=parseFloat(t.slice(1)), L=v.curve.getLengths((v.n-1)*8);
+  return L[Math.round(idx*8)]/L[L.length-1];
+}
+const rAt=(v,t)=>v.r[0]+(v.r[1]-v.r[0])*t;
+function segAt(v,t){ if(!v.segs) return null; for(const s of v.segs) if(t>=s[0]-1e-6&&t<=s[1]+1e-6) return s[2]; return null; }
+const filledAt=(v,t)=>t>=v.t0-1e-6;
+const distAt=(v,t)=>v.retro?v.base+(1-t)*v.len:v.dist0+t*v.len;
+function build(){
+  const R=S.mode==='cardio'?{D:defsCardio(),SEG:SEG_C,ORDER:ORDER_C}:defsNeuro();
+  const D=R.D, by={};
+  for(const v of D){
+    const pts=v.pts.map(P);
+    if(v.from){const p=by[v.from[0]];const tp=resolveT(p,v.from[1]);pts.unshift(p.curve.getPointAt(tp));v.parent=p;v.pt=tp;}
+    v.n=pts.length;
+    v.curve=new THREE.CatmullRomCurve3(pts,false,'centripetal');
+    v.len=v.curve.getLength();
+    if(v.segs)v.segs=v.segs.map(s=>[resolveT(v,s[0]),resolveT(v,s[1]),s[2]]);
+    v.retro=!!(v.fill&&typeof v.fill==='object');
+    v.t0=v.fill===true?0:v.retro?resolveT(v,v.fill.retro):2;
+    if(v.retro)v.base=distAt(by[v.fill.base],1);
+    else v.dist0=(v.parent&&filledAt(v.parent,v.pt))?distAt(v.parent,v.pt):0;
+    v.anyFill=v.t0<=1;
+    const n=Math.max(12,Math.ceil(v.len/0.1));
+    v.samples=[];
+    for(let i=0;i<=n;i++){const t=i/n;v.samples.push({p:v.curve.getPointAt(t),t,r:rAt(v,t),dist:distAt(v,t),seg:segAt(v,t),fill:filledAt(v,t)});}
+    v.rm=(v.r[0]+v.r[1])/2;
+    by[v.id]=v;
+  }
+  const pieces=[],segs={};let maxDist=0;
+  for(const v of D){
+    (v.segs||[[0,1,null]]).forEach(s=>pieces.push({v,t0:s[0],t1:s[1],seg:s[2],filled:filledAt(v,(s[0]+s[1])/2)}));
+    v.samples.forEach(sm=>{if(sm.fill)maxDist=Math.max(maxDist,sm.dist);});
+  }
+  pieces.forEach(p=>{ if(!p.seg)return; if(!segs[p.seg]){const pts=[];for(let i=0;i<=28;i++)pts.push(p.v.curve.getPointAt(p.t0+(p.t1-p.t0)*i/28));segs[p.seg]={pieces:[],pts};} segs[p.seg].pieces.push(p); });
+  M={D,by,pieces,segs,maxDist,SEG:R.SEG,ORDER:R.ORDER};
+}
+const segFilled=k=>!!(M.segs[k]&&M.segs[k].pieces.some(p=>p.filled));
+function defaultSel(){ if(S.mode==='cardio')return '7'; const [iv,is]=S.inj.split('-'); return iv==='VA'?'AB':iv==='CCA'?'ACE-'+is:'M1-'+is; }
+function ensureSel(){
+  const ok=k=>!!M.segs[k]&&(S.mode==='cardio'||segFilled(k));
+  if(!ok(S.sel)){const d=defaultSel();S.sel=ok(d)?d:(Object.keys(M.segs).find(ok)||Object.keys(M.segs)[0]);}
+}
+
+/* ---------- projeção do arco ---------- */
+const ISO_C=surf(0.36,90,0.15,0).add(new V3(-0.3,0.4,0));
+const ISO_N=v3(0,1.0,-0.6);
+let ISO=ISO_C, FOV=18;
+function basis(lao,cra){
+  const a=lao*DEG,c=cra*DEG;
+  const d=new V3(Math.sin(a)*Math.cos(c),Math.sin(c),Math.cos(a)*Math.cos(c));
+  const r=new V3(Math.cos(a),0,-Math.sin(a));
+  const u=new V3(-Math.sin(a)*Math.sin(c),Math.cos(c),-Math.cos(a)*Math.sin(c));
+  return {d,r,u};
+}
+const _q=new V3();
+function proj(p,B,cx,cy,s){_q.subVectors(p,ISO);const m=70/(70+_q.dot(B.d));return [cx+_q.dot(B.r)*m*s,cy-_q.dot(B.u)*m*s,m];}
+function fsOf(pts,B){let a=0,b=0;for(let i=1;i<pts.length;i++){const dx=pts[i].x-pts[i-1].x,dy=pts[i].y-pts[i-1].y,dz=pts[i].z-pts[i-1].z;
+  const L=Math.hypot(dx,dy,dz);const pr=dx*B.r.x+dy*B.r.y+dz*B.r.z,pu=dx*B.u.x+dy*B.u.y+dz*B.u.z;a+=Math.hypot(pr,pu);b+=L;}return b?a/b:0;}
+function fsColor(f,alpha){
+  const g=[92,198,138],w=[230,184,74],b=[223,101,87];let c;
+  if(f>=.85)c=g;else if(f>=.6){const k=(f-.6)/.25;c=w.map((x,i)=>x+(g[i]-x)*k*k);} else {const k=Math.max(0,(f-.35)/.25);c=b.map((x,i)=>x+(w[i]-x)*k);}
+  return alpha===undefined?`rgb(${c.map(Math.round)})`:`rgba(${c.map(Math.round)},${alpha})`;
+}
+const fmtRot=a=>{a=Math.round(a);return a===0?'AP':(a>0?'LAO ':'RAO ')+Math.abs(a)+'°';};
+const fmtAng=c=>{c=Math.round(c);return c===0?'0°':(c>0?'CRA ':'CAU ')+Math.abs(c)+'°';};
+const fmtView=(a,c)=>fmtRot(a)+' · '+fmtAng(c);
+
+/* ---------- anatomia de fundo: tórax ---------- */
+const CHEST={cx:0.6,cz:0.5,rx:13.5,rz:10.5};
+const ANAT={verts:[],ribs:[],domeL:[],domeR:[],heart:[],great:[]};
+(function(){
+  for(let y=-13;y<=13;y+=2.35){const c=[];for(const dx of[-1.6,1.6])for(const dy of[-.9,.9])for(const dz of[-1.5,1.5])c.push(new V3(dx,y+dy,-8.6+dz));ANAT.verts.push(c);}
+  for(let i=0;i<10;i++){
+    const y0=11.5-i*2.55, sc=.62+.38*Math.min(1,i/4);
+    for(const sd of[-1,1]){const pts=[];for(let k=0;k<=24;k++){const ph=(8+k/24*142)*DEG;
+      pts.push(new V3(sd*CHEST.rx*sc*Math.sin(ph),y0-4.2*(k/24)**1.3,CHEST.cz-CHEST.rz*Math.cos(ph)*(.75+.25*sc)));}
+      ANAT.ribs.push(pts);}
+  }
+  const dome=(c,r,arr)=>{for(let a=0;a<360;a+=20)for(let e=0;e<=90;e+=15){const A=a*DEG,E=e*DEG;arr.push(new V3(c.x+r.x*Math.cos(E)*Math.cos(A),c.y+r.y*Math.sin(E),c.z+r.z*Math.cos(E)*Math.sin(A)));}
+    arr.push(new V3(c.x-r.x,c.y-12,c.z),new V3(c.x+r.x,c.y-12,c.z));};
+  dome(new V3(5.2,-12.6,1),new V3(7.2,7,8.5),ANAT.domeL);
+  dome(new V3(-4.4,-11.8,0.5),new V3(7.6,7.4,8.5),ANAT.domeR);
+})();
+
+/* ---------- anatomia de fundo: crânio ---------- */
+const SKC=v3(0,2.0,-0.6), SKR=[7.1,7.9,9.3];
+const VERT_Y=[-4.6,-6.4,-8.2,-9.9,-11.6,-13.3];
+const NEU=(function(){
+  const o={vault:[],inner:[],face:[],orbits:[],petrous:[],petHull:[],mand:[],verts:[],fm:[],
+    clivus:[v3(0,0.0,-0.95),v3(0,-3.7,-3.0)],dorsum:[v3(-0.6,0.7,-0.8),v3(0.6,0.7,-0.8),v3(0.6,-0.3,-0.95),v3(-0.6,-0.3,-0.95)]};
+  const cut=z=>z>3?-1.2:z>-2?-2.8:-3.6;
+  for(let a=0;a<360;a+=10)for(let e=-80;e<=90;e+=10){const A=a*DEG,E=e*DEG;
+    const p=v3(SKC.x+SKR[0]*Math.cos(E)*Math.cos(A),SKC.y+SKR[1]*Math.sin(E),SKC.z+SKR[2]*Math.cos(E)*Math.sin(A));
+    if(p.y>=cut(p.z)){o.vault.push(p);o.inner.push(p.clone().sub(SKC).multiplyScalar(.93).add(SKC));}}
+  for(const x of[-3.6,3.6])for(const y of[-2.4,-7.0])for(const z of[1.5,6.6])o.face.push(v3(x,y,z));
+  for(const sx of[-1,1]){
+    const ring=[];for(let k=0;k<=32;k++){const t=k/32*Math.PI*2;ring.push(v3(sx*3.2+2.0*Math.cos(t),-0.45+1.75*Math.sin(t),5.9));}o.orbits.push(ring);
+    const pr=[v3(sx*1.6,-1.6,-1.4),v3(sx*3.4,-1.25,-2.4),v3(sx*5.2,-1.1,-3.6)];o.petrous.push(pr);
+    o.petHull.push(pr.concat(pr.map(p=>p.clone().add(v3(0,-1.5,0))),[v3(sx*5.6,-3.4,-3.9),v3(sx*2.6,-3.0,-1.2)]));
+  }
+  o.mand=[v3(-5.0,-2.4,-1.4),v3(-4.8,-5.0,-1.0),v3(-4.6,-7.6,-0.6),v3(-3.6,-9.6,2.8),v3(-1.6,-10.4,5.4),v3(0,-10.6,6.0),
+    v3(1.6,-10.4,5.4),v3(3.6,-9.6,2.8),v3(4.6,-7.6,-0.6),v3(4.8,-5.0,-1.0),v3(5.0,-2.4,-1.4)];
+  VERT_Y.forEach(y=>{const c=[];for(const dx of[-.9,.9])for(const dy of[-.65,.65])for(const dz of[-.8,.8])c.push(v3(dx,y+dy,-2.9+dz));
+    for(const dx of[-3.0,3.0])for(const dy of[-.25,.25])for(const dz of[-.4,.4])c.push(v3(dx,y+dy,-3.0+dz));o.verts.push(c);});
+  for(let k=0;k<=32;k++){const t=k/32*Math.PI*2;o.fm.push(v3(1.55*Math.cos(t),-3.5+0.3*Math.sin(t),-4.6+1.9*Math.sin(t)));}
+  return o;
+})();
+
+/* ---------- cena 3D principal ---------- */
+const stage=$('#stage');
+const R3=new THREE.WebGLRenderer({antialias:true,alpha:true});
+R3.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+stage.prepend(R3.domElement);
+const scene=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(32,1,0.5,300);
+const ctl=new THREE.OrbitControls(cam,R3.domElement);
+ctl.enableDamping=true;ctl.dampingFactor=.12;ctl.minDistance=18;ctl.maxDistance=110;ctl.enablePan=false;
+scene.add(new THREE.HemisphereLight(0xe4ecff,0x2a1512,.75));
+const dl=new THREE.DirectionalLight(0xffffff,.85);dl.position.set(8,14,18);scene.add(dl);
+const dl2=new THREE.DirectionalLight(0x9fb8ff,.35);dl2.position.set(-12,-6,8);scene.add(dl2);
+const camLight=new THREE.PointLight(0xffffff,.25,0);cam.add(camLight);scene.add(cam);
+
+const tissue=(col)=>new THREE.MeshStandardMaterial({color:col,roughness:.62,metalness:0});
+const matHeart=tissue(0x6b2724), matAtr=tissue(0x5a2220), matAo=tissue(0x8a3a31), matVen=tissue(0x3b4a74);
+const tissueMats=[matHeart,matAtr,matAo,matVen];
+
+function heartGeometry(){
+  const NH=60,NT=72,pos=[],nor=[],idx=[];
+  for(let i=0;i<=NH;i++){const h=-0.03+1.03*i/NH;
+    const e=.004,dr=(rprof(Math.min(1,h+e))-rprof(Math.max(-0.03,h-e)))/(2*e);
+    for(let j=0;j<=NT;j++){const th=j/NT*360,p=surf(h,th,1,0),rd=radial(th);
+      const n=(h>=.999)?W.clone():rd.clone().sub(W.clone().multiplyScalar(dr/HL)).normalize();
+      pos.push(p.x,p.y,p.z);nor.push(n.x,n.y,n.z);if(i%3===0&&j%4===0)ANAT.heart.push(p);}}
+  for(let i=0;i<NH;i++)for(let j=0;j<NT;j++){const a=i*(NT+1)+j,b=a+NT+1;idx.push(a,a+1,b,b,a+1,b+1);}
+  const c0=center(-0.03),base=pos.length/3;pos.push(c0.x,c0.y,c0.z);nor.push(-W.x,-W.y,-W.z);
+  for(let j=0;j<NT;j++)idx.push(base,j+1,j);
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setIndex(idx);return g;
+}
+const heartGroup=new THREE.Group();scene.add(heartGroup);
+heartGroup.add(new THREE.Mesh(heartGeometry(),matHeart));
+function blob(c,r,sc,mat){const m=new THREE.Mesh(new THREE.SphereGeometry(r,28,20),mat);m.position.copy(c);m.scale.set(sc[0],sc[1],sc[2]);heartGroup.add(m);
+  for(let a=0;a<360;a+=30)for(let e=-60;e<=60;e+=30){ANAT.heart.push(new V3(c.x+r*sc[0]*Math.cos(e*DEG)*Math.cos(a*DEG),c.y+r*sc[1]*Math.sin(e*DEG),c.z+r*sc[2]*Math.cos(e*DEG)*Math.sin(a*DEG)));}}
+const RA=surf(-0.2,-40,0.62,0), LA=surf(-0.24,160,0.5,0);
+blob(RA,2.5,[1,1.15,1],matAtr); blob(LA,2.5,[1.25,.85,1],matAtr); blob(surf(-0.05,100,1.0,0),1.0,[1.2,.7,1],matAtr);
+const aoCurve=new THREE.CatmullRomCurve3(AOP.slice().reverse().concat([AO.clone().add(new V3(0,-0.4,0))]).slice(0,-1),false,'centripetal');
+heartGroup.add(new THREE.Mesh(new THREE.TubeGeometry(aoCurve,80,1.2,20,false),matAo));
+const aoRoot=new THREE.Mesh(new THREE.SphereGeometry(1.4,24,18),matAo);aoRoot.position.copy(AO);heartGroup.add(aoRoot);
+const PTP=[surf(0.02,40,0.95,0),AO.clone().add(new V3(1.2,0.9,1.8)),AO.clone().add(new V3(1.9,2.7,1.4)),AO.clone().add(new V3(2.9,3.9,-0.4)),AO.clone().add(new V3(3.4,4.0,-2.2))];
+const ptCurve=new THREE.CatmullRomCurve3(PTP,false,'centripetal');
+heartGroup.add(new THREE.Mesh(new THREE.TubeGeometry(ptCurve,40,1.1,18,false),matVen));
+const svc=new THREE.CatmullRomCurve3([RA.clone().add(new V3(0.3,1.2,-0.3)),RA.clone().add(new V3(0.6,4,-0.6)),RA.clone().add(new V3(0.7,8,-0.8))]);
+heartGroup.add(new THREE.Mesh(new THREE.TubeGeometry(svc,20,0.9,14,false),matVen));
+const ivc=new THREE.CatmullRomCurve3([RA.clone().add(new V3(0.6,-1.5,-1)),RA.clone().add(new V3(1.2,-5,-2)),RA.clone().add(new V3(1.5,-9,-2.6))]);
+heartGroup.add(new THREE.Mesh(new THREE.TubeGeometry(ivc,20,1.0,14,false),matVen));
+for(let i=0;i<=24;i++){ANAT.great.push(aoCurve.getPointAt(i/24));ANAT.great.push(ptCurve.getPointAt(Math.min(1,i/18)));}
+
+/* esqueleto torácico */
+const boneMat=new THREE.MeshStandardMaterial({color:0xcfc6b4,roughness:.85,transparent:true,opacity:.17,depthWrite:false});
+const skel=new THREE.Group();scene.add(skel);
+ANAT.verts.forEach(c=>{const y=(c[0].y+c[1].y)/2;const m=new THREE.Mesh(new THREE.BoxGeometry(2.6,1.5,2.4),boneMat);m.position.set(0,y,-8.6);skel.add(m);});
+ANAT.ribs.forEach(pts=>skel.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),40,.24,6,false),boneMat)));
+{const st=new THREE.Mesh(new THREE.BoxGeometry(2.6,13,1),boneMat);st.position.set(0,4.5,CHEST.cz+CHEST.rz*.95);skel.add(st);}
+
+/* crânio */
+const neuroGroup=new THREE.Group();scene.add(neuroGroup);
+{
+  const skullMat=new THREE.MeshStandardMaterial({color:0xd8cfbd,roughness:.9,transparent:true,opacity:.08,depthWrite:false,side:THREE.DoubleSide});
+  const nb=new THREE.MeshStandardMaterial({color:0xd3c9b5,roughness:.85,transparent:true,opacity:.32,depthWrite:false});
+  const vault=new THREE.Mesh(new THREE.SphereGeometry(1,48,32),skullMat);vault.scale.set(...SKR);vault.position.copy(SKC);neuroGroup.add(vault);
+  for(const sx of[-1,1]){const t=new THREE.Mesh(new THREE.TorusGeometry(1,0.1,8,36),nb);t.scale.set(2.0,1.75,1);t.position.set(sx*3.2,-0.45,5.9);neuroGroup.add(t);}
+  NEU.petrous.forEach(pr=>neuroGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pr),16,.38,8,false),nb)));
+  neuroGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(NEU.mand),80,.35,8,false),nb));
+  VERT_Y.forEach(y=>{const b=new THREE.Mesh(new THREE.BoxGeometry(1.8,1.3,1.6),nb);b.position.set(0,y,-2.9);neuroGroup.add(b);
+    const tp=new THREE.Mesh(new THREE.BoxGeometry(6.0,0.5,0.8),nb);tp.position.set(0,y,-3.0);neuroGroup.add(tp);});
+  const fm=new THREE.Mesh(new THREE.TorusGeometry(1,0.08,8,36),nb);fm.scale.set(1.55,1.9,1);fm.rotation.x=Math.PI/2;fm.position.set(0,-3.5,-4.6);neuroGroup.add(fm);
+  neuroGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(NEU.clivus),8,.3,8,false),nb));
+  const ds=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.0,0.25),nb);ds.position.set(0,0.2,-0.85);neuroGroup.add(ds);
+}
+
+/* vasos */
+const vesselGroup=new THREE.Group();scene.add(vesselGroup);
+function taperTube(v,t0,t1,radialN){
+  const n=Math.max(4,Math.ceil((t1-t0)*v.len/0.1)),pos=[],nor=[],idx=[];let N=null,prevT=null;
+  for(let i=0;i<=n;i++){const t=t0+(t1-t0)*i/n,p=v.curve.getPointAt(t),T=v.curve.getTangentAt(t).normalize();
+    if(!N){const a=Math.abs(T.x)<.9?new V3(1,0,0):new V3(0,1,0);N=new V3().crossVectors(T,a).normalize();}
+    else{N.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(prevT,T)).normalize();}
+    const Bn=new V3().crossVectors(T,N),r=rAt(v,t)*1.45;
+    for(let j=0;j<=radialN;j++){const a=j/radialN*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a);
+      const nx=N.x*ca+Bn.x*sa,ny=N.y*ca+Bn.y*sa,nz=N.z*ca+Bn.z*sa;pos.push(p.x+nx*r,p.y+ny*r,p.z+nz*r);nor.push(nx,ny,nz);}
+    prevT=T.clone();}
+  for(let i=0;i<n;i++)for(let j=0;j<radialN;j++){const a=i*(radialN+1)+j,b=a+radialN+1;idx.push(a,b,a+1,b,b+1,a+1);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setIndex(idx);return g;
+}
+const COL={L:new THREE.Color(css('--lca')),R:new THREE.Color(css('--rca')),ant:new THREE.Color(css('--lca')),post:new THREE.Color(css('--rca')),ext:new THREE.Color(css('--eca'))};
+const COLS={L:'--lca',R:'--rca',ant:'--lca',post:'--rca',ext:'--eca'};
+const ACC=new THREE.Color(css('--accent')), GREY=new THREE.Color(0x3a4048);
+let catheter3=[];
+function buildVessels3D(){
+  vesselGroup.children.slice().forEach(c=>{vesselGroup.remove(c);c.geometry.dispose();c.material.dispose();});
+  M.pieces.forEach(pc=>{
+    const mat=new THREE.MeshStandardMaterial({color:COL[pc.v.t].clone(),roughness:.38,metalness:.05,emissive:COL[pc.v.t].clone().multiplyScalar(.18)});
+    const m=new THREE.Mesh(taperTube(pc.v,pc.t0,pc.t1,10),mat);m.userData.pc=pc;pc.mesh=m;vesselGroup.add(m);
+    if(pc.t1>=1){const cap=new THREE.Mesh(new THREE.SphereGeometry(rAt(pc.v,1)*1.45,10,8),mat);cap.position.copy(pc.v.curve.getPointAt(1));cap.userData.pc=pc;vesselGroup.add(cap);}
+  });
+  catheter3.forEach(m=>{scene.remove(m);m.geometry.dispose();});catheter3=[];
+  const cm=new THREE.MeshStandardMaterial({color:0x2a2f35,roughness:.5});
+  catheterCurves().forEach(c=>{const m=new THREE.Mesh(new THREE.TubeGeometry(c,120,.11,6,false),cm);scene.add(m);catheter3.push(m);});
+  styleVessels();
+}
+function styleVessels(){
+  const B=basis(S.lao,S.cra);
+  M.pieces.forEach(pc=>{const mt=pc.mesh.material;let c;
+    if(pc.seg===S.sel){c=ACC.clone();mt.emissive.copy(ACC).multiplyScalar(.45);}
+    else if(S.fs){c=pc.seg?new THREE.Color(fsColor(fsOf(M.segs[pc.seg].pts,B))):new THREE.Color(0x5d6772);mt.emissive.copy(c).multiplyScalar(.15);}
+    else{c=COL[pc.v.t].clone();mt.emissive.copy(c).multiplyScalar(.18);}
+    if(!pc.filled&&pc.seg!==S.sel){c.lerp(GREY,.75);mt.emissive.setRGB(0,0,0);}
+    mt.color.copy(c);
+  });
+}
+function applySee(){tissueMats.forEach(m=>{m.transparent=S.see;m.opacity=S.see?.22:1;m.depthWrite=!S.see;m.needsUpdate=true;});}
+function applyBones(){const N=S.mode==='neuro';skel.visible=!N&&S.skel;neuroGroup.visible=N&&S.skel;heartGroup.visible=!N;}
+
+/* etiquetas 3D */
+const lblBox=$('#lbls');let lbls=[];
+function buildLabels(){
+  lblBox.innerHTML='';lbls=[];
+  M.D.forEach(v=>{if(!v.lb)return;const el=document.createElement('div');el.className='lbl3 '+v.t;el.textContent=v.lb;lblBox.appendChild(el);lbls.push({el,p:v.curve.getPointAt(v.lt||.5),v});});
+}
+const _p=new V3();
+function updateLabels(){
+  if(!S.lbl){lblBox.hidden=true;return;}lblBox.hidden=false;
+  const w=stage.clientWidth,h=stage.clientHeight;
+  lbls.forEach(o=>{_p.copy(o.p).project(cam);o.el.style.left=((_p.x+1)/2*w)+'px';o.el.style.top=((1-_p.y)/2*h-12)+'px';o.el.style.opacity=o.v.anyFill?1:.35;o.el.hidden=_p.z>1;});
+}
+
+/* seleção por toque no 3D */
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();let down=null;
+function selectFromVessel(v,t){const s=segAt(v,t);if(s)return select(s);let p=v;while(p.parent){const ps=segAt(p.parent,p.pt);if(ps)return select(ps);p=p.parent;}}
+R3.domElement.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];});
+R3.domElement.addEventListener('pointerup',e=>{
+  if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>6)return;
+  const r=R3.domElement.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  ray.setFromCamera(ndc,cam);const hit=ray.intersectObjects(vesselGroup.children,false)[0];
+  if(hit&&hit.object.userData.pc){const pc=hit.object.userData.pc;selectFromVessel(pc.v,(pc.t0+pc.t1)/2);}
+});
+function resetCam(){
+  const N=S.mode==='neuro';const B=basis(N?-35:25,N?12:15);
+  cam.position.copy(ISO).add(B.d.multiplyScalar(N?60:44));cam.up.set(0,1,0);ctl.target.copy(ISO);cam.lookAt(ISO);ctl.update();
+}
+
+/* ---------- sala (arco em C) ---------- */
+const roomEl=$('#room');
+const RR=new THREE.WebGLRenderer({antialias:true,alpha:true});RR.setPixelRatio(Math.min(window.devicePixelRatio||1,2));roomEl.prepend(RR.domElement);
+const room=new THREE.Scene();
+const rcam=new THREE.PerspectiveCamera(34,4/3,1,400);rcam.up.set(0,0,1);rcam.position.set(38,-12,13);
+const rctl=new THREE.OrbitControls(rcam,RR.domElement);rctl.target.set(0,1.5,-1);rctl.enableDamping=true;rctl.enablePan=false;rctl.minDistance=25;rctl.maxDistance=90;rctl.update();
+room.add(new THREE.HemisphereLight(0xe8eefc,0x1b2027,.8));
+{const l=new THREE.DirectionalLight(0xffffff,.7);l.position.set(10,-20,30);room.add(l);}
+const patient=new THREE.Group();room.add(patient);
+const bodyMat=new THREE.MeshStandardMaterial({color:0x8d9aa8,roughness:.8,transparent:true,opacity:.45,depthWrite:false});
+const organMat=new THREE.MeshStandardMaterial({color:0xb03a30,roughness:.6});
+const heartDot=new THREE.Mesh(new THREE.SphereGeometry(1.1,20,14),organMat);heartDot.scale.set(1.1,1,.9);heartDot.position.set(0.7,0,0.6);patient.add(heartDot);
+const brainDot=new THREE.Mesh(new THREE.SphereGeometry(1.0,20,14),organMat);brainDot.scale.set(1,1,1.2);brainDot.position.set(0,7.4,0.3);patient.add(brainDot);
+{const g=new THREE.CylinderGeometry(3.1,3.1,17,28);const b=new THREE.Mesh(g,bodyMat);b.scale.set(1.35,1,1);b.position.set(0,-3.2,0);patient.add(b);
+ const hd=new THREE.Mesh(new THREE.SphereGeometry(1.75,24,18),bodyMat);hd.position.set(0,7.3,0.2);patient.add(hd);
+ const tb=new THREE.Mesh(new THREE.BoxGeometry(8,30,.6),new THREE.MeshStandardMaterial({color:0x2c3540,roughness:.7}));tb.position.set(0,-3,-3.5);patient.add(tb);
+ const fl=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.MeshStandardMaterial({color:0x10161c,roughness:1}));fl.position.set(0,0,-13);room.add(fl);
+ const grid=new THREE.GridHelper(80,20,0x1f2933,0x1a222b);grid.rotation.x=Math.PI/2;grid.position.z=-12.95;room.add(grid);}
+const armMat=new THREE.MeshStandardMaterial({color:0xd5d9de,roughness:.45,metalness:.15});
+const cGroup=new THREE.Group();room.add(cGroup);
+const ARC=10;
+const arc=new THREE.Mesh(new THREE.TorusGeometry(ARC,.5,12,64,Math.PI),armMat);cGroup.add(arc);
+const det=new THREE.Mesh(new THREE.BoxGeometry(4.6,4.6,1.2),new THREE.MeshStandardMaterial({color:0x39424d,roughness:.5}));cGroup.add(det);
+const detFace=new THREE.Mesh(new THREE.PlaneGeometry(4,4),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.5}));cGroup.add(detFace);
+const tube=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.3,3.2,20),armMat);cGroup.add(tube);
+const beam=new THREE.Mesh(new THREE.ConeGeometry(2.3,15.6,24,1,true),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.1,side:THREE.DoubleSide,depthWrite:false}));cGroup.add(beam);
+const holder=new THREE.Mesh(new THREE.BoxGeometry(1.6,5.5,1.6),new THREE.MeshStandardMaterial({color:0x8e98a3,roughness:.6}));holder.position.set(0,ARC+2.6,0);room.add(holder);
+const col=new THREE.Mesh(new THREE.BoxGeometry(2.4,2.4,13),new THREE.MeshStandardMaterial({color:0x6f7a85,roughness:.6}));col.position.set(0,ARC+5.4,-6.5);room.add(col);
+const _m=new THREE.Matrix4();
+function placeArc(){
+  const B=basis(S.lao,S.cra),d=B.d,u=B.u,r=B.r;
+  _m.makeBasis(d,u,new V3().crossVectors(d,u));arc.setRotationFromMatrix(_m);
+  _m.makeBasis(r,u,d);det.setRotationFromMatrix(_m);detFace.setRotationFromMatrix(_m);
+  det.position.copy(d).multiplyScalar(ARC-0.6);detFace.position.copy(d).multiplyScalar(ARC-1.25);
+  _m.makeBasis(r,d,new V3().crossVectors(r,d));tube.setRotationFromMatrix(_m);tube.position.copy(d).multiplyScalar(-(ARC-1.3));
+  const nd=d.clone().negate();_m.makeBasis(r,nd,new V3().crossVectors(r,nd));beam.setRotationFromMatrix(_m);beam.position.copy(d).multiplyScalar(0.2);
+}
+const rlb=$('#rlbls');const rlabels=[['Detetor',()=>det.position],['Ampola',()=>tube.position],['Cabeça',()=>new V3(0,9.4+patient.position.y,1)]].map(([t,f])=>{const e=document.createElement('div');e.className='lbl3 N';e.textContent=t;rlb.appendChild(e);return {e,f};});
+function updateRoomLabels(){const w=roomEl.clientWidth,h=roomEl.clientHeight;rlabels.forEach(o=>{_p.copy(o.f()).project(rcam);o.e.style.left=((_p.x+1)/2*w)+'px';o.e.style.top=((1-_p.y)/2*h-16)+'px';});}
+
+/* ---------- angiograma ---------- */
+const cv=$('#angio'),ctx=cv.getContext('2d');
+const lay=document.createElement('canvas'),lctx=lay.getContext('2d');
+const anat=document.createElement('canvas'),actx=anat.getContext('2d');
+const noise=document.createElement('canvas');noise.width=noise.height=160;
+{const nc=noise.getContext('2d'),im=nc.createImageData(160,160);for(let i=0;i<im.data.length;i+=4){const v=128+(Math.random()-.5)*255;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=255;}nc.putImageData(im,0,0);}
+let noisePat=null, cine=null, dirty=true, angioProj=[];
+function hull(pts){
+  pts=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);if(pts.length<3)return pts;
+  const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);const lo=[],up=[];
+  for(const p of pts){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
+  for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
+  up.pop();lo.pop();return lo.concat(up);
+}
+function drawAngio(now){
+  const rect=cv.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
+  const W_=Math.max(50,Math.round(rect.width*dpr)),H_=W_;
+  if(cv.width!==W_){cv.width=cv.height=W_;lay.width=lay.height=W_;anat.width=anat.height=Math.round(W_/5);noisePat=null;}
+  const N=S.mode==='neuro', dsa=N&&S.dsa;
+  const B=basis(S.lao,S.cra),s=W_/FOV,cx=W_/2,cy=H_/2;
+  const g=ctx.createRadialGradient(cx,cy*.92,W_*.05,cx,cy,W_*.75);
+  if(dsa){g.addColorStop(0,'#c4c4c1');g.addColorStop(1,'#b4b4b1');}else{g.addColorStop(0,'#bcbcb8');g.addColorStop(1,'#8c8c89');}
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.fillStyle=g;ctx.fillRect(0,0,W_,H_);
+  // anatomia (baixa resolução + ampliação)
+  if(!dsa){
+    const aw=anat.width,as=aw/FOV;actx.clearRect(0,0,aw,aw);
+    const path=(pts,close)=>{actx.beginPath();pts.forEach((p,i)=>{const q=proj(p,B,aw/2,aw/2,as);i?actx.lineTo(q[0],q[1]):actx.moveTo(q[0],q[1]);});if(close)actx.closePath();};
+    const hp=pts=>{const h=hull(pts.map(p=>proj(p,B,aw/2,aw/2,as)));if(h.length<3)return false;actx.beginPath();h.forEach((q,i)=>i?actx.lineTo(q[0],q[1]):actx.moveTo(q[0],q[1]));actx.closePath();return true;};
+    const fillHull=(pts,a)=>{if(hp(pts)){actx.fillStyle=`rgba(0,0,0,${a})`;actx.fill();}};
+    const strokeHull=(pts,a,w)=>{if(hp(pts)){actx.strokeStyle=`rgba(0,0,0,${a})`;actx.lineWidth=w*as;actx.stroke();}};
+    const line=(pts,a,w,close)=>{path(pts,close);actx.strokeStyle=`rgba(0,0,0,${a})`;actx.lineWidth=w*as;actx.stroke();};
+    actx.lineCap='round';actx.lineJoin='round';
+    if(!N){
+      fillHull(ANAT.domeL,.3);fillHull(ANAT.domeR,.36);fillHull(ANAT.heart,.16);fillHull(ANAT.great,.07);
+      ANAT.verts.forEach(c=>fillHull(c,.15));
+      ANAT.ribs.forEach(pts=>line(pts,.1,.9));
+    } else {
+      fillHull(NEU.vault,.07);strokeHull(NEU.vault,.2,.55);strokeHull(NEU.inner,.1,.3);
+      fillHull(NEU.face,.06);
+      NEU.orbits.forEach(r=>line(r,.22,.3,true));
+      NEU.petHull.forEach(h=>fillHull(h,.14));NEU.petrous.forEach(p=>line(p,.26,.45));
+      line(NEU.mand,.2,.8);
+      NEU.verts.forEach(c=>fillHull(c,.14));
+      line(NEU.fm,.14,.3,true);line(NEU.clivus,.16,.55);fillHull(NEU.dorsum,.2);
+    }
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(anat,0,0,W_,H_);
+  }
+  // cateteres
+  ctx.lineCap='round';ctx.lineJoin='round';
+  if(!dsa)catheterCurves().forEach(c=>{ctx.beginPath();for(let i=0;i<=160;i++){const q=proj(c.getPointAt(i/160),B,cx,cy,s);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);}
+    ctx.strokeStyle='rgba(20,20,20,.62)';ctx.lineWidth=Math.max(1.5,.2*s);ctx.stroke();});
+  // contraste
+  let front=1e9,wash=1;
+  if(cine){const t=(now-cine)/1000;const md=M.maxDist+1;
+    if(t<1.5)front=md*(t/1.5);else if(t<2.6)front=1e9;else if(t<3.6)wash=1-(t-2.6);else{cine=null;}
+    if(cine&&t<0.15)front=0;}
+  const proj2=[];
+  M.D.forEach(v=>{
+    if(!v.anyFill)return;
+    lctx.clearRect(0,0,W_,H_);lctx.lineCap='round';lctx.lineJoin='round';
+    const pts=v.samples.map(sm=>proj(sm.p,B,cx,cy,s));let any=false;
+    for(let i=1;i<pts.length;i++){const s0=v.samples[i-1],s1=v.samples[i];if(!s0.fill||!s1.fill)continue;
+      const dm=Math.max(s0.dist,s1.dist);if(dm>front)continue;any=true;
+      const a=Math.min(1,(front-dm)/1.2);
+      let st='#000';if(S.fs){st=s1.seg?fsColor(fsOf(M.segs[s1.seg].pts,B)):'#3d4248';}else if(S.col)st=css(COLS[v.t]);
+      lctx.globalAlpha=a;lctx.strokeStyle=st;lctx.lineWidth=Math.max(1.3*dpr,2*s1.r*pts[i][2]*s*.92);
+      lctx.beginPath();lctx.moveTo(pts[i-1][0],pts[i-1][1]);lctx.lineTo(pts[i][0],pts[i][1]);lctx.stroke();}
+    lctx.globalAlpha=1;
+    const k=N?(.6+.34*Math.min(1,v.rm/.12)):(.5+.38*Math.min(1,v.rm/.16));
+    if(any){ctx.globalAlpha=k*wash;ctx.drawImage(lay,0,0);ctx.globalAlpha=1;}
+    proj2.push({v,pts});
+  });
+  // grão e vinheta
+  if(!noisePat)noisePat=ctx.createPattern(noise,'repeat');
+  ctx.save();ctx.globalAlpha=dsa?.035:.055;ctx.translate(Math.random()*160|0,Math.random()*160|0);ctx.fillStyle=noisePat;ctx.fillRect(-160,-160,W_+320,H_+320);ctx.restore();
+  const vg=ctx.createRadialGradient(cx,cy,W_*.42,cx,cy,W_*.74);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,`rgba(0,0,0,${dsa?.25:.42})`);ctx.fillStyle=vg;ctx.fillRect(0,0,W_,H_);
+  // escala 1 cm
+  ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=1.5*dpr;const sx=W_-14*dpr-s,sy=H_-14*dpr;
+  ctx.beginPath();ctx.moveTo(sx,sy-4*dpr);ctx.lineTo(sx,sy);ctx.lineTo(sx+s,sy);ctx.lineTo(sx+s,sy-4*dpr);ctx.stroke();
+  ctx.font=`${10*dpr}px "Martian Mono", monospace`;ctx.fillStyle='rgba(255,255,255,.9)';ctx.textAlign='center';ctx.fillText('1 cm',sx+s/2,sy-6*dpr);
+  // compasso do segmento selecionado
+  const sg=M.segs[S.sel];
+  if(sg&&segFilled(S.sel)){
+    const q=sg.pts.map(p=>proj(p,B,cx,cy,s));const acc=css('--accent');
+    const tick=(a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L,k=9*dpr;ctx.beginPath();ctx.moveTo(a[0]-nx*k,a[1]-ny*k);ctx.lineTo(a[0]+nx*k,a[1]+ny*k);ctx.stroke();};
+    ctx.strokeStyle=acc;ctx.lineWidth=2*dpr;tick(q[0],q[1]);tick(q[q.length-1],q[q.length-2]);
+    const mi=q[Math.floor(q.length/2)],mb=q[Math.floor(q.length/2)+1];const dx=mb[0]-mi[0],dy=mb[1]-mi[1],L=Math.hypot(dx,dy)||1;
+    const ox=mi[0]-dy/L*18*dpr,oy=mi[1]+dx/L*18*dpr,code=M.SEG[S.sel].code;
+    ctx.font=`600 ${11*dpr}px "Martian Mono", monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.lineWidth=3*dpr;ctx.strokeStyle='rgba(0,0,0,.7)';ctx.strokeText(code,ox,oy);ctx.fillStyle=acc;ctx.fillText(code,ox,oy);ctx.textBaseline='alphabetic';
+  }
+  // etiquetas
+  if(S.lbl){ctx.font=`500 ${10*dpr}px "Martian Mono", monospace`;ctx.textAlign='center';
+    proj2.forEach(({v})=>{if(!v.lb||!filledAt(v,v.lt||.5))return;const q=proj(v.curve.getPointAt(v.lt||.5),B,cx,cy,s);ctx.lineWidth=3*dpr;ctx.strokeStyle='rgba(0,0,0,.75)';ctx.strokeText(v.lb,q[0]+12*dpr,q[1]-8*dpr);ctx.fillStyle='#fff';ctx.fillText(v.lb,q[0]+12*dpr,q[1]-8*dpr);});}
+  angioProj=proj2;
+}
+function nearest(x,y){let best=null,bd=1e9;angioProj.forEach(({v,pts})=>pts.forEach((q,i)=>{if(!v.samples[i].fill)return;const d=Math.hypot(q[0]-x,q[1]-y);if(d<bd){bd=d;best={v,i};}}));return bd<14*Math.min(window.devicePixelRatio||1,2)?best:null;}
+function nameOf(h){const sm=h.v.samples[h.i];if(sm.seg){const d=M.SEG[sm.seg];return d.code+' · '+d.n+(d.side?' ('+d.side+')':'');}return h.v.nm||h.v.lb||h.v.id;}
+const tip=$('#tip');
+function cxy(e){const r=cv.getBoundingClientRect(),k=cv.width/r.width;return [(e.clientX-r.left)*k,(e.clientY-r.top)*k,e.clientX-r.left,e.clientY-r.top];}
+cv.addEventListener('pointermove',e=>{const [x,y,ox,oy]=cxy(e);const h=nearest(x,y);if(h){tip.hidden=false;tip.textContent=nameOf(h);tip.style.left=ox+'px';tip.style.top=oy+'px';}else tip.hidden=true;});
+cv.addEventListener('pointerleave',()=>{tip.hidden=true;});
+cv.addEventListener('click',e=>{const [x,y]=cxy(e);const h=nearest(x,y);if(h)selectFromVessel(h.v,h.v.samples[h.i].t);});
+
+/* ---------- mapa de projeções ---------- */
+const mc=$('#map'),mx=mc.getContext('2d');let heat=null,heatKey='';
+const MAP={a0:-90,a1:90,c0:-45,c1:45};
+function mapGeom(){const r=mc.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);const w=Math.round(r.width*dpr),h=Math.round(w/2);if(mc.width!==w){mc.width=w;mc.height=h;}
+  const L=34*dpr,R=10*dpr,T=10*dpr,Bt=22*dpr;return {w,h,dpr,L,T,pw:w-L-R,ph:h-T-Bt};}
+const ax=(a,G)=>G.L+(a-MAP.a0)/(MAP.a1-MAP.a0)*G.pw, ay=(c,G)=>G.T+(MAP.c1-c)/(MAP.c1-MAP.c0)*G.ph;
+function computeHeat(){
+  const key=[S.mode,S.sel,S.dom,S.ramus,S.inj,S.fetal,S.a1h].join('|');if(key===heatKey)return;heatKey=key;
+  const sg=M.segs[S.sel];heat={cells:[],best:null};if(!sg)return;
+  for(let a=-90;a<=90;a+=5)for(let c=-45;c<=45;c+=5)heat.cells.push([a,c,fsOf(sg.pts,basis(a,c))]);
+  const all=[];let mx_=0;for(let a=-90;a<=90;a+=2)for(let c=-40;c<=40;c+=2){const f=fsOf(sg.pts,basis(a,c));all.push([a,c,f]);if(f>mx_)mx_=f;}
+  let b=null;all.forEach(q=>{if(q[2]>=mx_-.015&&(!b||Math.hypot(q[0],q[1]*1.5)<Math.hypot(b[0],b[1]*1.5)))b=q;});
+  heat.best=b;
+}
+const curGroup=()=>S.mode==='cardio'?null:(S.inj.startsWith('VA')?'post':'ant');
+function visiblePresets(){const P=getPresets();return S.mode==='cardio'?P.filter(p=>S.inj==='B'||p.g===S.inj):P.filter(p=>p.g===curGroup());}
+function drawMap(){
+  const G=mapGeom(),{w,h,dpr}=G;computeHeat();
+  mx.clearRect(0,0,w,h);mx.fillStyle='#0a0e12';mx.fillRect(G.L,G.T,G.pw,G.ph);
+  const cw=G.pw/36,ch=G.ph/18;
+  heat.cells.forEach(([a,c,f])=>{mx.fillStyle=fsColor(f,.16+.42*Math.max(0,Math.min(1,(1-f)*1.6)));mx.fillRect(ax(a,G)-cw/2,ay(c,G)-ch/2,cw+.5,ch+.5);});
+  mx.strokeStyle=css('--line-2');mx.lineWidth=1;
+  for(let a=-90;a<=90;a+=30){mx.beginPath();mx.moveTo(ax(a,G),G.T);mx.lineTo(ax(a,G),G.T+G.ph);mx.stroke();}
+  for(let c=-45;c<=45;c+=15){mx.beginPath();mx.moveTo(G.L,ay(c,G));mx.lineTo(G.L+G.pw,ay(c,G));mx.stroke();}
+  mx.strokeStyle=css('--faint');mx.beginPath();mx.moveTo(ax(0,G),G.T);mx.lineTo(ax(0,G),G.T+G.ph);mx.moveTo(G.L,ay(0,G));mx.lineTo(G.L+G.pw,ay(0,G));mx.stroke();
+  mx.font=`${9*dpr}px "Martian Mono", monospace`;mx.fillStyle=css('--muted');
+  [[-90,'RAO 90'],[-60,'60'],[-30,'30'],[0,'AP'],[30,'30'],[60,'60'],[90,'LAO 90']].forEach(([a,t],i)=>{mx.textAlign=i===0?'left':i===6?'right':'center';mx.fillText(t,ax(a,G),h-7*dpr);});
+  mx.textAlign='right';[[45,'CRA'],[30,'30'],[15,'15'],[0,'0'],[-15,'15'],[-30,'30'],[-45,'CAU']].forEach(([c,t])=>mx.fillText(t,G.L-5*dpr,ay(c,G)+3*dpr));
+  const seen={};
+  visiblePresets().forEach(p=>{const k=p.a+','+p.c;const x=ax(p.a,G),y=ay(p.c,G);const col=css(COLS[p.g]);
+    mx.setLineDash([3*dpr,3*dpr]);mx.strokeStyle=col;mx.lineWidth=1*dpr;mx.beginPath();mx.arc(x,y,7*dpr,0,Math.PI*2);mx.stroke();mx.setLineDash([]);
+    if(seen[k]||seen[p.n])return;seen[k]=1;seen[p.n]=1;mx.fillStyle=css('--fg');mx.globalAlpha=.8;const lb=p.sn||p.n;
+    if(p.lp==='r'){mx.textAlign=p.a<0?'right':'left';mx.fillText(lb,x+(p.a<0?-11:11)*dpr,y+3*dpr);}
+    else{const ty=(p.c>35||p.lp==='b')?y+18*dpr:y-11*dpr;mx.textAlign=p.a>=80?'right':p.a<=-80?'left':'center';mx.fillText(lb,p.a>=80?x+6*dpr:p.a<=-80?x-6*dpr:x,ty);}
+    mx.globalAlpha=1;});
+  if(heat.best){const x=ax(heat.best[0],G),y=ay(heat.best[1],G);mx.fillStyle=css('--good');mx.beginPath();mx.moveTo(x,y-6*dpr);mx.lineTo(x+6*dpr,y);mx.lineTo(x,y+6*dpr);mx.lineTo(x-6*dpr,y);mx.closePath();mx.fill();}
+  const x=ax(S.lao,G),y=ay(S.cra,G);mx.strokeStyle=css('--accent');mx.lineWidth=1*dpr;mx.globalAlpha=.55;
+  mx.beginPath();mx.moveTo(x,G.T);mx.lineTo(x,G.T+G.ph);mx.moveTo(G.L,y);mx.lineTo(G.L+G.pw,y);mx.stroke();mx.globalAlpha=1;
+  mx.fillStyle=css('--accent');mx.beginPath();mx.arc(x,y,5.5*dpr,0,Math.PI*2);mx.fill();mx.strokeStyle='#07090b';mx.lineWidth=2*dpr;mx.stroke();
+  const sd=M.SEG[S.sel];$('#mapT').textContent=sd?sd.code+' · '+sd.n+(sd.side?' ('+sd.side+')':''):'';
+}
+function mapPick(e){const G=mapGeom(),r=mc.getBoundingClientRect(),k=mc.width/r.width;const x=(e.clientX-r.left)*k,y=(e.clientY-r.top)*k;
+  const a=MAP.a0+(x-G.L)/G.pw*(MAP.a1-MAP.a0),c=MAP.c1-(y-G.T)/G.ph*(MAP.c1-MAP.c0);setAngles(Math.round(Math.max(-90,Math.min(90,a))),Math.round(Math.max(-45,Math.min(45,c))));}
+let mapDrag=false;
+mc.addEventListener('pointerdown',e=>{mapDrag=true;mc.setPointerCapture(e.pointerId);tw=null;mapPick(e);});
+mc.addEventListener('pointermove',e=>{if(mapDrag)mapPick(e);});
+mc.addEventListener('pointerup',()=>{mapDrag=false;});
+
+/* ---------- projeções-padrão ---------- */
+function presetsN(){const s=S.inj.split('-')[1]==='E'?1:-1;
+  return [{id:'N-AP',g:'ant',n:'AP',a:0,c:0,f:'ACI supraclinoideia, A1, M1'},
+   {id:'N-TO',g:'ant',n:'AP transorbitária',sn:'Transorb.',lp:'b',a:0,c:C_TO,f:'Rochedo abaixo das órbitas; M1 e A1'},
+   {id:'N-OBL',g:'ant',n:'Oblíqua transorbitária',sn:'Oblíqua',lp:'r',a:s*25,c:C_TO,f:'Bifurcação da ACM, AComA'},
+   {id:'N-LAT',g:'ant',n:'Lateral',a:s*90,c:0,f:'Sifão carotídeo, AComP, ACA'},
+   {id:'P-AP',g:'post',n:'AP',a:0,c:0,f:'Vertebrais e junção vertebrobasilar'},
+   {id:'P-TOW',g:'post',n:'Towne',a:0,c:35,f:'Topo da basilar, P1, ACS'},
+   {id:'P-LAT',g:'post',n:'Lateral',a:s*90,c:0,f:'Basilar, PICA, ACS'}];}
+const getPresets=()=>S.mode==='cardio'?PRE_C:presetsN();
+
+/* ---------- interface ---------- */
+const sRot=$('#sRot'),sAng=$('#sAng');
+let tw=null;
+function setAngles(a,c,anim){
+  if(anim){tw={a0:S.lao,c0:S.cra,a1:a,c1:c,t0:performance.now(),d:Math.min(700,250+Math.hypot(a-S.lao,c-S.cra)*5)};return;}
+  S.lao=a;S.cra=c;sRot.value=Math.round(a);sAng.value=Math.round(c);refreshView();
+}
+function refreshView(){
+  $('#rRot').textContent=fmtRot(S.lao);$('#rAng').textContent=fmtAng(S.cra);
+  $('#ovA').innerHTML=fmtRot(S.lao)+'<br>'+fmtAng(S.cra);
+  placeArc();styleVessels();drawMap();renderInfo();markPresets();dirty=true;
+}
+sRot.addEventListener('input',()=>{tw=null;setAngles(+sRot.value,S.cra);});
+sAng.addEventListener('input',()=>{tw=null;setAngles(S.lao,+sAng.value);});
+
+function applyPreset(p){
+  if(S.mode==='cardio'){if(S.inj!==p.g)setInj(p.g);}
+  else{const [iv,is]=S.inj.split('-');if(p.g==='post'&&iv!=='VA')setInj('VA-'+is);else if(p.g==='ant'&&iv==='VA')setInj('ICA-'+is);}
+  setAngles(p.a,p.c,true);
+}
+function renderPresets(){
+  const C=S.mode==='cardio',P=getPresets(),g1=C?'L':'ant';
+  $('#preL1').textContent=C?'Coronária esquerda':'Circulação anterior · ACI / ACC';
+  $('#preL2').textContent=C?'Coronária direita':'Circulação posterior · AV';
+  const G1=$('#preG1'),G2=$('#preG2');G1.innerHTML='';G2.innerHTML='';
+  P.forEach(p=>{const b=document.createElement('button');b.className='pre';b.dataset.id=p.id;b.title='Melhor para: '+p.f;
+    b.innerHTML=`<b>${p.n}</b><small>${fmtView(p.a,p.c)}</small>`;b.addEventListener('click',()=>applyPreset(p));(p.g===g1?G1:G2).appendChild(b);});
+  markPresets();
+}
+function markPresets(){const P=getPresets();document.querySelectorAll('.pre').forEach(b=>{const p=P.find(x=>x.id===b.dataset.id);if(!p)return;
+  const grpOk=S.mode==='cardio'?(S.inj===p.g||S.inj==='B'):p.g===curGroup();
+  b.classList.toggle('on',Math.round(S.lao)===p.a&&Math.round(S.cra)===p.c&&grpOk);});}
+
+function injText(){if(S.mode==='cardio')return {L:'CE',R:'CD',B:'CE + CD'}[S.inj];const [iv,is]=S.inj.split('-');return {ICA:'ACI',CCA:'ACC',VA:'AV'}[iv]+(is==='E'?' esq.':' dir.');}
+function renderInj(){
+  const c=$('#injC');c.innerHTML='';
+  const mk=(opts,cur,on,label)=>{const d=document.createElement('div');d.className='segc';d.setAttribute('role','group');d.setAttribute('aria-label',label);
+    opts.forEach(([v,l])=>{const b=document.createElement('button');b.dataset.v=v;b.textContent=l;b.setAttribute('aria-pressed',String(v===cur));b.addEventListener('click',()=>on(v));d.appendChild(b);});c.appendChild(d);};
+  if(S.mode==='cardio')mk([['L','Esquerda'],['R','Direita'],['B','Ambas']],S.inj,setInj,'Coronária injetada');
+  else{const [iv,is]=S.inj.split('-');
+    mk([['ICA','ACI'],['CCA','ACC'],['VA','AV']],iv,v=>setInj(v+'-'+S.inj.split('-')[1]),'Vaso injetado');
+    mk([['D','Dir.'],['E','Esq.']],is,x=>setInj(S.inj.split('-')[0]+'-'+x),'Lado');}
+  $('#ovI').textContent=injText();
+}
+function setInj(v){
+  const prevSide=S.mode==='neuro'?S.inj.split('-')[1]:null;
+  S.inj=v;renderInj();
+  if(S.mode==='neuro'){const ns=v.split('-')[1];if(prevSide&&ns!==prevSide){const lat=Math.abs(Math.round(S.lao));if(lat===90||lat===25){S.lao=-S.lao;sRot.value=Math.round(S.lao);}}}
+  renderPresets();rebuild();
+}
+$('#dom').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{S.dom=b.dataset.v;$('#dom').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));rebuild();}));
+function tog(id,key,fn){const b=$(id);b.addEventListener('click',()=>{S[key]=!S[key];b.setAttribute('aria-pressed',String(S[key]));fn&&fn();dirty=true;});}
+tog('#t-det','det',()=>{ctl.enabled=!S.det;if(!S.det)resetCam();});
+tog('#t-skel','skel',applyBones);
+tog('#t-see','see',applySee);
+tog('#t-lbl','lbl');
+tog('#t-fs','fs',()=>{styleVessels();});
+tog('#t-col','col');
+tog('#t-dsa','dsa');
+tog('#t-ri','ramus',rebuild);
+tog('#t-fetal','fetal',rebuild);
+tog('#t-a1h','a1h',rebuild);
+$('#cine').addEventListener('click',()=>{cine=performance.now();});
+
+function select(sg){if(!M.segs[sg])return;S.sel=sg;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.s===sg));
+  styleVessels();drawMap();renderInfo();dirty=true;}
+function buildChips(){
+  const box=$('#chips');box.innerHTML='';const groups={},sides={};
+  M.ORDER.forEach(k=>{if(!M.segs[k])return;if(S.mode==='neuro'&&!segFilled(k))return;const d=M.SEG[k];(groups[d.grp]=groups[d.grp]||[]).push(k);(sides[d.grp]=sides[d.grp]||new Set()).add(d.side);});
+  Object.keys(groups).forEach(gn=>{const row=document.createElement('div');row.className='chiprow';
+    const lab=document.createElement('span');lab.className='lab';lab.textContent=gn;row.appendChild(lab);
+    const both=sides[gn].has('D')&&sides[gn].has('E');
+    groups[gn].forEach(k=>{const d=M.SEG[k];const b=document.createElement('button');b.className='chip '+d.t+(k===S.sel?' on':'');b.dataset.s=k;
+      b.innerHTML=`<i>${d.code}</i>${d.n}${both&&d.side?` <em>${d.side}</em>`:''}`;b.addEventListener('click',()=>select(k));row.appendChild(b);});
+    box.appendChild(row);});
+}
+function renderInfo(){
+  const sg=M.segs[S.sel];if(!sg)return;const d=M.SEG[S.sel];
+  const f=fsOf(sg.pts,basis(S.lao,S.cra)),pct=Math.round(f*100);
+  const cls=f>=.85?'good':f>=.6?'warn':'bad',txt=f>=.85?'Bom':f>=.6?'Encurtado':'Muito encurtado';
+  computeHeat();const b=heat&&heat.best;
+  const P=getPresets();const refIds=S.mode==='cardio'?(REFS_C[S.sel]||[]):(REFS_N[d.code]||[]);
+  const refs=refIds.map(id=>P.find(p=>p.id===id)).filter(Boolean);
+  const hidden=!segFilled(S.sel);
+  $('#info').innerHTML=`
+   <div class="ih"><span class="inum">${d.code}</span><div><div class="iname">${d.n}</div><div class="ien">${d.en} · ${d.ctx}</div></div></div>
+   <div class="irow"><span>Comprimento projetado</span><b class="big">${pct}%</b><span class="pill ${cls}">${txt}</span></div>
+   <div class="irow"><span>Melhor neste modelo</span>${b?`<button class="link" id="goBest">${fmtView(b[0],b[1])} · ${Math.round(b[2]*100)}%</button>`:''}</div>
+   ${refs.length?`<div class="irow"><span>Projeções de referência</span>${refs.map(p=>`<button class="link" data-p="${p.id}">${p.n} <span style="color:var(--muted)">${fmtView(p.a,p.c)}</span></button>`).join('')}</div>`:''}
+   ${hidden?`<p class="small" style="color:var(--warn)">Este segmento não fica opacificado com a injeção atual.</p>`:''}
+   <p class="small">O encurtamento é calculado no modelo. A sobreposição com outros ramos vê-se no angiograma.</p>`;
+  const gb=$('#goBest');if(gb)gb.addEventListener('click',()=>{if(S.mode==='cardio'&&hidden)setInj(d.t);setAngles(b[0],b[1],true);});
+  $('#info').querySelectorAll('[data-p]').forEach(el=>el.addEventListener('click',()=>{const p=P.find(x=>x.id===el.dataset.p);applyPreset(p);}));
+}
+function rebuild(){build();ensureSel();heatKey='';buildVessels3D();buildLabels();buildChips();refreshView();}
+
+/* ---------- modo ---------- */
+const TXT={
+  cardio:{brand:'Coronárias',sub:'ARCO EM C · LAO/RAO · CRA/CAU · SEGMENTOS SYNTAX',h3d:'Coração 3D',skel:'Esqueleto',segSub:'numeração SYNTAX',
+    hint:'Uma projeção muda o lado injetado. Toque num vaso do angiograma ou do coração para ver o segmento.'},
+  neuro:{brand:'Cerebrais',sub:'ARCO EM C · LAO/RAO · CRA/CAU · SEGMENTOS DE BOUTHILLIER E FISCHER',h3d:'Crânio 3D',skel:'Crânio',segSub:'ACI de Bouthillier · ACA e ACM de Fischer',
+    hint:'Cabeça neutra, com a linha orbitomeatal perpendicular à mesa. LAO/RAO e CRA/CAU indicam a posição do detetor. Uma projeção posterior passa a injeção para a vertebral.'}
+};
+const modeFromHash=()=>{const h=(location.hash||'').toLowerCase();return h==='#cerebral'?'neuro':h==='#coronarias'?'cardio':null;};
+function setMode(m,noHash){
+  if(M&&m===S.mode)return;
+  if(M)MEM[S.mode]={lao:S.lao,cra:S.cra,inj:S.inj,sel:S.sel};
+  S.mode=m;Object.assign(S,MEM[m]);tw=null;cine=null;
+  const N=m==='neuro',T=TXT[m];
+  ISO=N?ISO_N:ISO_C;FOV=N?24:18;
+  applyBones();patient.position.y=N?-7.4:0;heartDot.visible=!N;brainDot.visible=N;
+  $('#mode').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===m)));
+  $('#brandM').textContent=T.brand;$('#sub').textContent=T.sub;$('#h3d').textContent=T.h3d;$('#t-skel').textContent=T.skel;
+  $('#segSub').textContent=T.segSub;$('#hint').textContent=T.hint;$('#ovF').textContent=`FOV ${FOV} cm · SID 100 cm`;
+  $('#t-see').hidden=N;$('#t-dsa').hidden=!N;$('#footC').hidden=N;$('#footN').hidden=!N;
+  sRot.value=Math.round(S.lao);sAng.value=Math.round(S.cra);
+  resetCam();renderInj();renderPresets();rebuild();
+  if(!noHash){try{const h=N?'cerebral':'coronarias';if(location.hash!=='#'+h)location.hash=h;}catch(e){}}
+}
+$('#mode').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.v)));
+window.addEventListener('hashchange',()=>{const m=modeFromHash();if(m&&m!==S.mode)setMode(m,true);});
+
+/* ---------- ciclo ---------- */
+function resize(){
+  const w=stage.clientWidth,h=stage.clientHeight;R3.setSize(w,h,false);cam.aspect=w/Math.max(1,h);cam.updateProjectionMatrix();
+  const rw=roomEl.clientWidth,rh=roomEl.clientHeight;RR.setSize(rw,rh,false);rcam.aspect=rw/Math.max(1,rh);rcam.updateProjectionMatrix();
+  dirty=true;if(M){heatKey='';drawMap();}
+}
+new ResizeObserver(resize).observe(document.body);
+function frame(now){
+  requestAnimationFrame(frame);
+  if(tw){const k=Math.min(1,(now-tw.t0)/tw.d),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;S.lao=tw.a0+(tw.a1-tw.a0)*e;S.cra=tw.c0+(tw.c1-tw.c0)*e;
+    sRot.value=Math.round(S.lao);sAng.value=Math.round(S.cra);refreshView();if(k>=1){S.lao=tw.a1;S.cra=tw.c1;tw=null;refreshView();}}
+  if(S.det){const B=basis(S.lao,S.cra);cam.position.copy(ISO).add(B.d.clone().multiplyScalar(S.mode==='neuro'?60:44));cam.up.copy(B.u);cam.lookAt(ISO);}
+  else ctl.update();
+  R3.render(scene,cam);updateLabels();
+  rctl.update();RR.render(room,rcam);updateRoomLabels();
+  if(cine||dirty){drawAngio(now);dirty=false;}
+}
+setMode(modeFromHash()||'cardio',true);resize();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{dirty=true;drawMap();});
+requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
