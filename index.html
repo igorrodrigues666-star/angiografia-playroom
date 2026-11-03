@@ -5,35 +5,46 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Projeções Angiográficas</title>
 <meta name="description" content="Simulador educativo de projeções angiográficas: coronárias, cerebral, abdominal e ilíacas, TAVI, com dose no doente e proteção do operador.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f0ad32'/%3E%3Cpath d='M9 22a8 8 0 1 1 14 0M16 22v3' stroke='%231b1305' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f2f5f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a1220" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d68c9'/%3E%3Cpath d='M9 22a8 8 0 1 1 14 0M16 22v3' stroke='%23ffffff' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..750&family=Martian+Mono:wght@400;500;600&display=swap">
-<script>try{if(localStorage.getItem('tema')==='azul')document.documentElement.dataset.theme='azul'}catch(e){}</script>
 <style>
 html{-webkit-text-size-adjust:100%}[hidden]{display:none!important}
 /* Layout: consola de sala — barra de territórios · palco (angiograma + visor 3D/sala) · consola do arco · inspetor com separadores */
 :root{
-  --bg:#080b0f; --bg-2:#0c1117; --card:#0f151b; --card-2:#141b23; --card-3:#1a232d;
-  --line:rgba(150,170,190,.11); --line-2:rgba(150,170,190,.2);
-  --fg:#e4e9ee; --muted:#8c99a7; --faint:#5d6977;
-  --accent:#f0ad32; --accent-ink:#1b1305; --accent-soft:rgba(240,173,50,.13); --accent-line:rgba(240,173,50,.45);
-  --lca:#ee7e66; --rca:#58c3d4; --eca:#b39cf0;
-  --good:#5cc68a; --warn:#e6b84a; --bad:#e8604f;
+  --bg:#f2f5f9; --bg-2:#eef3f8; --card:#ffffff; --card-2:#f5f8fc; --card-3:#e8f0f9;
+  --line:rgba(16,42,84,.10); --line-2:rgba(16,42,84,.18);
+  --fg:#0f1f33; --muted:#566a82; --faint:#8696a9;
+  --accent:#1d68c9; --accent-ink:#ffffff; --accent-soft:rgba(29,104,201,.09); --accent-line:rgba(29,104,201,.42);
+  --lca:#e26d55; --rca:#2aa5b8; --eca:#8f78e0;
+  --good:#1f9d61; --warn:#c98a10; --bad:#d94a3b; --bad-ink:#c0392b; --bad-soft:rgba(217,74,59,.08);
+  --glow:rgba(29,104,201,.10); --canvas:#f4f7fb; --shadow:0 1px 2px rgba(16,42,84,.06),0 6px 20px rgba(16,42,84,.06);
+  --vp-1:#16233a; --vp-2:#0a111c; --vp-film:#05080d;
   --r:14px; --r-s:9px;
   --f-ui:"Archivo","Helvetica Neue",Arial,sans-serif;
   --f-mono:"Martian Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
-  --glow:#15202b; --fade:rgba(8,11,15,0);
-  color-scheme:dark;
 }
-/* tema azul (alternativo, escolhido no botão do cabeçalho) */
-:root[data-theme="azul"]{
-  --bg:#06101f; --bg-2:#0a1628; --card:#0d1b30; --card-2:#12233c; --card-3:#182c49;
-  --line:rgba(120,160,220,.13); --line-2:rgba(120,160,220,.25);
-  --fg:#e6eefb; --muted:#8fa3c0; --faint:#5c6f8c;
-  --accent:#3d9bff; --accent-ink:#04122a; --accent-soft:rgba(61,155,255,.14); --accent-line:rgba(61,155,255,.5);
-  --glow:#10284a; --fade:rgba(6,16,31,0);
-}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0a1220; --bg-2:#0d1728; --card:#101b2e; --card-2:#142238; --card-3:#1b2c47;
+  --line:rgba(140,170,220,.12); --line-2:rgba(140,170,220,.22);
+  --fg:#e6eef8; --muted:#93a6bf; --faint:#61738c;
+  --accent:#4d9bff; --accent-ink:#04122a; --accent-soft:rgba(77,155,255,.13); --accent-line:rgba(77,155,255,.5);
+  --lca:#ee7e66; --rca:#58c3d4; --eca:#b39cf0;
+  --good:#5cc68a; --warn:#e6b84a; --bad:#e8604f; --bad-ink:#ff9a8c; --bad-soft:rgba(232,96,79,.12);
+  --glow:rgba(77,155,255,.12); --canvas:#0d1728; --shadow:none;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a1220; --bg-2:#0d1728; --card:#101b2e; --card-2:#142238; --card-3:#1b2c47;
+  --line:rgba(140,170,220,.12); --line-2:rgba(140,170,220,.22);
+  --fg:#e6eef8; --muted:#93a6bf; --faint:#61738c;
+  --accent:#4d9bff; --accent-ink:#04122a; --accent-soft:rgba(77,155,255,.13); --accent-line:rgba(77,155,255,.5);
+  --lca:#ee7e66; --rca:#58c3d4; --eca:#b39cf0;
+  --good:#5cc68a; --warn:#e6b84a; --bad:#e8604f; --bad-ink:#ff9a8c; --bad-soft:rgba(232,96,79,.12);
+  --glow:rgba(77,155,255,.12); --canvas:#0d1728; --shadow:none;
+  color-scheme:dark}
 *{box-sizing:border-box}
 html,body{background:var(--bg);color:var(--fg)}
 body{font-family:var(--f-ui);font-size:14px;line-height:1.45;margin:0;
@@ -49,7 +60,7 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
 /* barra superior */
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
 .topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:10px 18px;flex-wrap:wrap;
-  max-width:1720px;margin:0 auto;padding:12px 0;background:linear-gradient(var(--bg) 70%,var(--fade))}
+  max-width:2400px;margin:0 auto;padding:12px 0;background:linear-gradient(var(--bg) 70%,transparent)}
 .brand{display:flex;align-items:center;gap:10px;margin:0;font-size:17px;font-weight:700;font-stretch:80%;letter-spacing:.01em;white-space:nowrap}
 .brand .logo{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink)}
 .brand .logo svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
@@ -65,16 +76,21 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .icon-btn:hover{color:var(--fg);border-color:var(--line-2)}
 
 /* app */
-.app{max-width:1720px;margin:0 auto;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
-@media (min-width:1180px){.app{grid-template-columns:minmax(0,1fr) 410px;align-items:start}.inspector{position:sticky;top:72px;max-height:calc(100vh - 86px)}}
+.app{max-width:2400px;margin:0 auto;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:1180px){
+  .app{grid-template-columns:minmax(0,1fr) clamp(380px,24vw,460px);align-items:start}
+  .inspector{position:sticky;top:72px;height:calc(100vh - 86px);height:calc(100dvh - 86px)}
+  .angio-box{width:min(100%,calc(100vh - 300px));width:min(100%,calc(100dvh - 300px));margin:0 auto}
+  .angio-wrap{flex:1;display:flex;align-items:center}
+}
 .stage-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 .viewports{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
 @media (min-width:760px){.viewports{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);min-width:0;box-shadow:var(--shadow)}
 .vp{display:flex;flex-direction:column;overflow:hidden}
 .vp-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
 .vp-title{font-weight:650;font-size:14px;margin-right:auto;display:flex;align-items:center;gap:8px}
-.vp-title .dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px rgba(92,198,138,.15)}
+.vp-title .dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px var(--accent-soft)}
 
 /* segmentados e botões */
 .segc,.vtabs{display:inline-flex;padding:3px;gap:2px;background:var(--bg-2);border:1px solid var(--line);border-radius:10px}
@@ -89,23 +105,24 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .tgs{display:flex;flex-wrap:wrap;gap:6px}
 
 /* angiograma */
-.angio-wrap{padding:10px;background:#05070a}
+.angio-wrap{padding:10px;background:var(--vp-film)}
 .angio-box{position:relative;aspect-ratio:1/1;width:100%;max-width:100%;border-radius:8px;overflow:hidden;background:#9c9c99}
 #angio{display:block;width:100%;height:100%;touch-action:manipulation;cursor:crosshair}
 .ov{position:absolute;font-family:var(--f-mono);font-size:11px;color:#f4f4f2;text-shadow:0 0 3px #000,0 0 1px #000;pointer-events:none;line-height:1.35}
 .ov.tl{top:9px;left:11px}.ov.tr{top:9px;right:11px;text-align:right}.ov.bl{bottom:9px;left:11px}
 .ov.tc{top:9px;left:50%;transform:translateX(-50%);color:#fff;background:var(--bad);padding:2px 8px;border-radius:5px;text-shadow:none;font-weight:600;letter-spacing:.08em}
-#tip{position:absolute;pointer-events:none;background:rgba(10,13,16,.94);border:1px solid var(--accent-line);color:var(--fg);font-family:var(--f-mono);font-size:11px;padding:4px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,calc(-100% - 12px))}
+#tip{position:absolute;pointer-events:none;background:rgba(14,13,11,.95);border:1px solid var(--accent-line);color:var(--fg);font-family:var(--f-mono);font-size:11px;padding:4px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,calc(-100% - 12px))}
 
 /* visor 3D / sala */
-.vbody{position:relative;flex:1;min-height:420px;background:radial-gradient(120% 90% at 50% 35%,#131c25,#090d12)}
+.vbody{position:relative;flex:1;min-height:420px;background:radial-gradient(120% 90% at 50% 35%,var(--vp-1),var(--vp-2))}
 .vbody > .stage,.vbody > .room{position:absolute;inset:0;overflow:hidden}
 .vbody canvas{display:block;position:absolute;inset:0;width:100%;height:100%}
 .tools{position:absolute;left:10px;top:10px;right:10px;z-index:3;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
-.tools .tg{pointer-events:auto;background:rgba(15,21,27,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.hintline{position:absolute;left:12px;bottom:10px;font-size:11.5px;color:var(--faint);pointer-events:none;z-index:2}
-.lbl3{position:absolute;transform:translate(-50%,-50%);font-family:var(--f-mono);font-size:10px;padding:2px 6px;border-radius:5px;background:rgba(7,9,11,.8);pointer-events:none;white-space:nowrap;z-index:1}
-.lbl3.L,.lbl3.ant{color:var(--lca)}.lbl3.R,.lbl3.post{color:var(--rca)}.lbl3.ext{color:var(--eca)}.lbl3.N{color:var(--muted)}
+.tools .tg{pointer-events:auto;background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.tools .tg[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.hintline{position:absolute;left:12px;bottom:10px;font-size:11.5px;color:rgba(220,232,248,.5);pointer-events:none;z-index:2}
+.lbl3{position:absolute;transform:translate(-50%,-50%);font-family:var(--f-mono);font-size:10px;padding:2px 6px;border-radius:5px;background:rgba(12,11,10,.82);pointer-events:none;white-space:nowrap;z-index:1}
+.lbl3.L,.lbl3.ant{color:var(--lca)}.lbl3.R,.lbl3.post{color:var(--rca)}.lbl3.ext{color:var(--eca)}.lbl3.N{color:#a9b8cb}
 
 /* consola */
 .console{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;padding:10px}
@@ -113,17 +130,17 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .cblock .lab{font-size:11px}
 .angles{flex-direction:row;gap:20px}
 .angles b{display:block;font-family:var(--f-mono);font-weight:500;font-size:22px;letter-spacing:-.02em;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}
-.cseg{flex:1;min-width:180px}
+.cseg{flex:1;min-width:140px}
 .cseg .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cseg b{font-family:var(--f-mono);color:var(--accent);font-weight:600}
-.cseg .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:22ch}
+.cseg .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:22ch;min-width:0}
 .cdose b{font-family:var(--f-mono);font-weight:500;font-size:14px;white-space:nowrap}
 .actions{display:flex;gap:8px;margin-left:auto}
-.bigbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:120px;padding:0 18px;min-height:52px;border-radius:12px;font-weight:700;font-size:14.5px;cursor:pointer;border:1px solid transparent;user-select:none;-webkit-user-select:none;touch-action:none}
+.bigbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:110px;padding:0 16px;min-height:52px;border-radius:12px;font-weight:700;font-size:14.5px;cursor:pointer;border:1px solid transparent;user-select:none;-webkit-user-select:none;touch-action:none}
 .bigbtn svg{width:18px;height:18px}
 .bigbtn.inj{background:var(--accent);color:var(--accent-ink)}
 .bigbtn.inj:hover{filter:brightness(1.07)}
-.bigbtn.fl{background:rgba(232,96,79,.1);border-color:rgba(232,96,79,.5);color:#ff9a8c}
+.bigbtn.fl{background:var(--bad-soft);border-color:var(--bad);color:var(--bad-ink)}
 .bigbtn.fl[aria-pressed="true"]{background:var(--bad);color:#fff;box-shadow:0 0 0 4px rgba(232,96,79,.25)}
 .kbd{font-family:var(--f-mono);font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid currentColor;opacity:.6}
 
@@ -190,8 +207,8 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .kpi .lab{font-size:11px}
 .kpi b{display:block;font-family:var(--f-mono);font-weight:500;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;margin:2px 0 1px}
 .kpi small{font-size:10.5px;color:var(--faint)}
-.kpi.warn{border-color:rgba(230,184,74,.5)}.kpi.warn b{color:var(--warn)}
-.kpi.bad{border-color:rgba(232,96,79,.55)}.kpi.bad b{color:var(--bad)}
+.kpi.warn{border-color:var(--warn)}.kpi.warn b{color:var(--warn)}
+.kpi.bad{border-color:var(--bad)}.kpi.bad b{color:var(--bad)}
 .now{font-size:12.5px;color:var(--muted);line-height:1.65;margin:0}
 .now b{font-family:var(--f-mono);font-weight:500;color:var(--fg)}
 #skin{display:block;width:100%;aspect-ratio:100/52;max-width:100%;border-radius:8px}
@@ -202,11 +219,11 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .otab th{font-size:11px;font-weight:600;color:var(--faint)}
 .otab td{font-family:var(--f-mono);font-size:11.5px}
 .otab td:first-child{font-family:var(--f-ui);font-size:12.5px}
-.alert{font-size:12px;padding:7px 10px;border-radius:9px;border:1px solid rgba(230,184,74,.45);color:var(--warn);background:rgba(230,184,74,.07);margin:0}
+.alert{font-size:12px;padding:7px 10px;border-radius:9px;border:1px solid var(--warn);color:var(--warn);background:var(--accent-soft);margin:0}
 
 /* ajuda e avisos */
-.overlay{position:fixed;inset:0;z-index:50;background:rgba(4,6,9,.7);backdrop-filter:blur(4px);display:grid;place-items:center;padding:16px}
-.modal{max-width:560px;width:100%;max-height:calc(100vh - 32px);overflow:auto;background:var(--card);border:1px solid var(--line-2);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(5,12,24,.55);backdrop-filter:blur(4px);display:grid;place-items:center;padding:16px}
+.modal{box-shadow:0 20px 60px rgba(0,0,0,.3);max-width:560px;width:100%;max-height:calc(100vh - 32px);overflow:auto;background:var(--card);border:1px solid var(--line-2);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px}
 .modal h2{margin:0;font-size:19px;font-stretch:85%}
 .modal p{margin:0;color:var(--muted);line-height:1.55}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:center;font-size:13px}
@@ -222,7 +239,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   .topbar{gap:10px}
   .vbody{min-height:78vw}
   .tools .tg span{display:none}
-  .console{position:fixed;left:0;right:0;bottom:0;z-index:25;border-radius:16px 16px 0 0;border-bottom:0;padding:8px max(10px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));background:rgba(15,21,27,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);flex-wrap:nowrap;gap:8px}
+  .console{position:fixed;left:0;right:0;bottom:0;z-index:25;border-radius:16px 16px 0 0;border-bottom:0;padding:8px max(10px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));background:var(--card);box-shadow:0 -6px 24px rgba(0,0,0,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);flex-wrap:nowrap;gap:8px}
   .console .cseg,.console .cdose{display:none}
   .angles{gap:12px;padding:6px 10px}
   .angles b{font-size:16px}
@@ -244,7 +261,6 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   <symbol id="i-seg" viewBox="0 0 24 24"><path d="M4 20c4-2 4-8 8-10s6-6 8-8"/><circle cx="12" cy="10" r="2"/></symbol>
   <symbol id="i-rad" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M12 10V3a9 9 0 0 1 7.8 4.5L13.7 11M10.3 11 4.2 7.5A9 9 0 0 1 12 3M13 13.7l3.5 6.1A9 9 0 0 1 7.5 19.8l3.5-6.1"/></symbol>
   <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></symbol>
-  <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></symbol>
   <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.8c0 1.7-2.4 2-2.4 3.7M12 17h.01"/></symbol>
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-bone" viewBox="0 0 24 24"><path d="M7 4a2.5 2.5 0 0 0-3 3 2.5 2.5 0 0 0 3 3l7 7a2.5 2.5 0 0 0 3 3 2.5 2.5 0 0 0 3-3 2.5 2.5 0 0 0-3-3l-7-7a2.5 2.5 0 0 0-3-3z"/></symbol>
@@ -264,7 +280,6 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   </nav>
   <div class="topmeta">
     <span id="sub">ARCO EM C · SEGMENTOS SYNTAX</span>
-    <button class="icon-btn" id="themeBtn" aria-label="Mudar tema de cores" title="Tema: âmbar / azul"><svg class="i"><use href="#i-theme"/></svg></button>
     <button class="icon-btn" id="helpBtn" aria-label="Ajuda e atalhos" title="Ajuda e atalhos (?)"><svg class="i"><use href="#i-help"/></svg></button>
   </div>
 </header>
@@ -1020,9 +1035,9 @@ const scene=new THREE.Scene();
 const cam=new THREE.PerspectiveCamera(32,1,0.5,300);
 const ctl=new THREE.OrbitControls(cam,R3.domElement);
 ctl.enableDamping=true;ctl.dampingFactor=.12;ctl.minDistance=18;ctl.maxDistance=110;ctl.enablePan=false;
-scene.add(new THREE.HemisphereLight(0xe4ecff,0x2a1512,.75));
+scene.add(new THREE.HemisphereLight(0xf6efe6,0x2a1512,.75));
 const dl=new THREE.DirectionalLight(0xffffff,.85);dl.position.set(8,14,18);scene.add(dl);
-const dl2=new THREE.DirectionalLight(0x9fb8ff,.35);dl2.position.set(-12,-6,8);scene.add(dl2);
+const dl2=new THREE.DirectionalLight(0x9fc2ff,.32);dl2.position.set(-12,-6,8);scene.add(dl2);
 const camLight=new THREE.PointLight(0xffffff,.25,0);cam.add(camLight);scene.add(cam);
 
 const tissue=(col)=>new THREE.MeshStandardMaterial({color:col,roughness:.58,metalness:0,emissive:col,emissiveIntensity:.12});
@@ -1238,10 +1253,10 @@ const RR=new THREE.WebGLRenderer({antialias:true,alpha:true});RR.setPixelRatio(M
 const room=new THREE.Scene();
 const rcam=new THREE.PerspectiveCamera(34,4/3,1,400);rcam.up.set(0,0,1);rcam.position.set(74,-74,66);
 const rctl=new THREE.OrbitControls(rcam,RR.domElement);rctl.target.set(-5,-8,-10);rctl.enableDamping=true;rctl.enablePan=false;rctl.minDistance=25;rctl.maxDistance=130;rctl.update();
-room.add(new THREE.HemisphereLight(0xe8eefc,0x1b2027,.8));
+room.add(new THREE.HemisphereLight(0xeef4ff,0x1a2230,.8));
 {const l=new THREE.DirectionalLight(0xffffff,.7);l.position.set(10,-20,30);room.add(l);}
 const patient=new THREE.Group();room.add(patient);patient.scale.setScalar(RK0);
-const skinMat=new THREE.MeshStandardMaterial({color:0xa7b3c0,roughness:.75,transparent:true,opacity:.62,depthWrite:false});
+const skinMat=new THREE.MeshStandardMaterial({color:0xb3bcc6,roughness:.75,transparent:true,opacity:.62,depthWrite:false});
 const organMat=new THREE.MeshStandardMaterial({color:0xb03a30,roughness:.6});
 function limb(grp,a,b,r1,r2,mat){const d=b.clone().sub(a),L=d.length();const m=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,L,18,1,true),mat);
   m.position.copy(a).addScaledVector(d,.5);m.quaternion.setFromUnitVectors(new V3(0,1,0),d.clone().normalize());grp.add(m);
@@ -1262,7 +1277,7 @@ for(const s_ of[-1,1]){limb(ptArms,v3(s_*18.5,22,-6.5),v3(s_*20.5,-2,-6.8),4.6,4
   const hd=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),skinMat);hd.scale.set(2.4,5,3.0);hd.position.set(s_*19.6,-32.5,-7.6);ptArms.add(hd);
   limb(patient,v3(s_*9.5,-52,-4.5),v3(s_*10,-92,-6),8,5.6,skinMat);limb(patient,v3(s_*10,-92,-6),v3(s_*10,-130,-7.6),5.2,3.6,skinMat);
   limb(patient,v3(s_*10,-133,-7.4),v3(s_*10,-136,5),3.6,3.0,skinMat);}
-const tableMat=new THREE.MeshStandardMaterial({color:0x2c3540,roughness:.7});
+const tableMat=new THREE.MeshStandardMaterial({color:0x2e3b4c,roughness:.7});
 {const tb=new THREE.Mesh(new THREE.BoxGeometry(52,215,4),tableMat);tb.position.set(0,-45,-13.2);patient.add(tb);
  const ped=new THREE.Mesh(new THREE.BoxGeometry(30,34,90),tableMat);ped.position.set(0,-118,-60);patient.add(ped);}
 const heartDot=new THREE.Mesh(new THREE.SphereGeometry(5,20,14),organMat);heartDot.scale.set(1.1,1,.9);heartDot.position.set(2,-1,1.5);patient.add(heartDot);
@@ -1274,12 +1289,14 @@ function isoBody(){const m=S.mode;if(m==='neuro')return v3(ISO.x,ISO.y-SKC.y+42,
 function placePatient(){const ib=isoBody(),h=HAB[S.T.hab];patient.position.set(-ib.x*RK0,-ib.y*RK0,(-ib.z+S.T.table)*RK0);
   ptTorso.scale.set(h,1,h);ptArms.scale.set(h,1,1);ptTorso.position.z=-11;
   heartDot.visible=S.mode==='cardio'||S.mode==='tavi';brainDot.visible=S.mode==='neuro';abdoDot.visible=S.mode==='abdo';}
+{const fl=new THREE.Mesh(new THREE.PlaneGeometry(140,140),new THREE.MeshStandardMaterial({color:0x111a26,roughness:1}));fl.position.set(0,-10,-26.05);room.add(fl);
+ const grid=new THREE.GridHelper(140,28,0x243449,0x1a2738);grid.rotation.x=Math.PI/2;grid.position.set(0,-10,-26.0);room.add(grid);}
 const armMat=new THREE.MeshStandardMaterial({color:0xd5d9de,roughness:.45,metalness:.15});
 const cGroup=new THREE.Group();room.add(cGroup);
 const ARC=10;
 const arc=new THREE.Mesh(new THREE.TorusGeometry(ARC,.5,12,64,Math.PI),armMat);cGroup.add(arc);
-const det=new THREE.Mesh(new THREE.BoxGeometry(4.6,4.6,1.2),new THREE.MeshStandardMaterial({color:0x39424d,roughness:.5}));cGroup.add(det);
-const detFace=new THREE.Mesh(new THREE.PlaneGeometry(4,4),new THREE.MeshBasicMaterial({color:css('--accent'),transparent:true,opacity:.5}));cGroup.add(detFace);
+const det=new THREE.Mesh(new THREE.BoxGeometry(4.6,4.6,1.2),new THREE.MeshStandardMaterial({color:0x3a4656,roughness:.5}));cGroup.add(det);
+const detFace=new THREE.Mesh(new THREE.PlaneGeometry(4,4),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.5}));cGroup.add(detFace);
 /* ampola: corpo cilíndrico deitado (eixo perpendicular ao arco) + colimador virado ao isocentro; y local = direção do feixe */
 const tube=new THREE.Group();cGroup.add(tube);
 {const capMat=new THREE.MeshStandardMaterial({color:0x8e98a3,roughness:.55,metalness:.2});
@@ -1288,10 +1305,10 @@ const tube=new THREE.Group();cGroup.add(tube);
  for(const s_ of[-1,1]){const cap=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,.5,28),capMat);cap.rotation.z=Math.PI/2;cap.position.set(s_*2.75,-.4,0);tube.add(cap);}
  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.1,.8,20),capMat);neck.position.y=1.5;tube.add(neck);
  const coll=new THREE.Mesh(new THREE.BoxGeometry(3,1.5,3),colMat);coll.position.y=2.6;tube.add(coll);
- const win=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.6),new THREE.MeshBasicMaterial({color:css('--accent'),transparent:true,opacity:.5,side:THREE.DoubleSide}));win.rotation.x=-Math.PI/2;win.position.y=3.36;tube.add(win);tube.userData.win=win;}
-const beam=new THREE.Mesh(new THREE.ConeGeometry(2.3,15.6,24,1,true),new THREE.MeshBasicMaterial({color:css('--accent'),transparent:true,opacity:.1,side:THREE.DoubleSide,depthWrite:false}));cGroup.add(beam);
-const holder=new THREE.Mesh(new THREE.BoxGeometry(1.6,5.5,1.6),new THREE.MeshStandardMaterial({color:0x8e98a3,roughness:.6}));holder.position.set(0,ARC+2.6,0);room.add(holder);
-const col=new THREE.Mesh(new THREE.BoxGeometry(2.4,2.4,26),new THREE.MeshStandardMaterial({color:0x6f7a85,roughness:.6}));col.position.set(0,ARC+5.4,-13);room.add(col);
+ const win=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.6),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.5,side:THREE.DoubleSide}));win.rotation.x=-Math.PI/2;win.position.y=3.36;tube.add(win);}
+const beam=new THREE.Mesh(new THREE.ConeGeometry(2.3,15.6,24,1,true),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.1,side:THREE.DoubleSide,depthWrite:false}));cGroup.add(beam);
+const holder=new THREE.Mesh(new THREE.BoxGeometry(1.6,5.5,1.6),new THREE.MeshStandardMaterial({color:0x9aa6b4,roughness:.6}));holder.position.set(0,ARC+2.6,0);room.add(holder);
+const col=new THREE.Mesh(new THREE.BoxGeometry(2.4,2.4,26),new THREE.MeshStandardMaterial({color:0x7a8796,roughness:.6}));col.position.set(0,ARC+5.4,-13);room.add(col);
 const _m=new THREE.Matrix4();
 function placeArc(){
   const B=basis(S.lao,S.cra),d=B.d,u=B.u,r=B.r;
@@ -1441,7 +1458,7 @@ function visiblePresets(){const P=getPresets();if(S.mode==='cardio')return P.fil
 function drawMap(){
   if(!mc.clientWidth)return;
   const G=mapGeom(),{w,h,dpr}=G;computeHeat();
-  mx.clearRect(0,0,w,h);mx.fillStyle='#0a0e12';mx.fillRect(G.L,G.T,G.pw,G.ph);
+  mx.clearRect(0,0,w,h);mx.fillStyle=css('--canvas');mx.fillRect(G.L,G.T,G.pw,G.ph);
   const cw=G.pw/36,ch=G.ph/18;
   heat.cells.forEach(([a,c,f])=>{mx.fillStyle=fsColor(f,.16+.42*Math.max(0,Math.min(1,(1-f)*1.6)));mx.fillRect(ax(a,G)-cw/2,ay(c,G)-ch/2,cw+.5,ch+.5);});
   mx.strokeStyle=css('--line-2');mx.lineWidth=1;
@@ -1468,7 +1485,7 @@ function drawMap(){
   if(heat.best){const x=ax(heat.best[0],G),y=ay(heat.best[1],G);mx.fillStyle=css('--good');mx.beginPath();mx.moveTo(x,y-6*dpr);mx.lineTo(x+6*dpr,y);mx.lineTo(x,y+6*dpr);mx.lineTo(x-6*dpr,y);mx.closePath();mx.fill();}
   const x=ax(S.lao,G),y=ay(S.cra,G);mx.strokeStyle=css('--accent');mx.lineWidth=1*dpr;mx.globalAlpha=.55;
   mx.beginPath();mx.moveTo(x,G.T);mx.lineTo(x,G.T+G.ph);mx.moveTo(G.L,y);mx.lineTo(G.L+G.pw,y);mx.stroke();mx.globalAlpha=1;
-  mx.fillStyle=css('--accent');mx.beginPath();mx.arc(x,y,5.5*dpr,0,Math.PI*2);mx.fill();mx.strokeStyle='#07090b';mx.lineWidth=2*dpr;mx.stroke();
+  mx.fillStyle=css('--accent');mx.beginPath();mx.arc(x,y,5.5*dpr,0,Math.PI*2);mx.fill();mx.strokeStyle=css('--card');mx.lineWidth=2*dpr;mx.stroke();
   const sd=M.SEG[S.sel];$('#mapT').textContent=sd?sd.code+' · '+sd.n+(sd.side?' ('+sd.side+')':''):'';
 }
 function mapPick(e){const G=mapGeom(),r=mc.getBoundingClientRect(),k=mc.width/r.width;const x=(e.clientX-r.left)*k,y=(e.clientY-r.top)*k;
@@ -1710,7 +1727,7 @@ function drawSkin(psd){
   const w=Math.round(r.width*dpr),h=Math.round(w*.52);if(c.width!==w||c.height!==h){c.width=w;c.height=h;}
   const x=c.getContext('2d'),G=doseGeom(),s=SES[S.mode];
   const L=40*dpr,Rm=8*dpr,T=6*dpr,Bm=20*dpr,pw=w-L-Rm,ph=h-T-Bm,cw=pw/NBX,ch=ph/NBY;
-  x.clearRect(0,0,w,h);x.fillStyle='#0a0e12';x.fillRect(L,T,pw,ph);
+  x.clearRect(0,0,w,h);x.fillStyle=css('--canvas');x.fillRect(L,T,pw,ph);
   const top=Math.max(psd,50);
   for(let iy=0;iy<NBY;iy++)for(let ix=0;ix<NBX;ix++){const v=s.skin[iy*NBX+ix];if(v<=0)continue;const f=v/top;
     x.fillStyle=`rgba(${heatRGB(f)},${.3+.7*f})`;x.fillRect(L+ix*cw,T+(NBY-1-iy)*ch,cw+.6,ch+.6);}
@@ -1720,10 +1737,10 @@ function drawSkin(psd){
   [-90,0,90].forEach(a=>{const gx=L+(a+180)/360*pw;x.beginPath();x.moveTo(gx,T);x.lineTo(gx,T+ph);x.stroke();});
   x.strokeRect(L,T,pw,ph);
   x.font=`${9*dpr}px "Martian Mono", monospace`;x.fillStyle=css('--muted');
-  [[-180,'Anterior'],[-90,'Direita'],[0,'Costas'],[90,'Esquerda'],[180,'Anterior']].forEach(([a,t],i)=>{x.textAlign=i===0?'left':i===4?'right':'center';x.fillText(t,L+(a+180)/360*pw,h-6*dpr);});
+  (pw/dpr<380?[[-180,'Ant.'],[-90,'Dir.'],[0,'Post.'],[90,'Esq.'],[180,'Ant.']]:[[-180,'Anterior'],[-90,'Direita'],[0,'Costas'],[90,'Esquerda'],[180,'Anterior']]).forEach(([a,t],i)=>{x.textAlign=i===0?'left':i===4?'right':'center';x.fillText(t,L+(a+180)/360*pw,h-6*dpr);});
   x.textAlign='right';x.fillText('Cran.',L-5*dpr,T+9*dpr);x.fillText('Caud.',L-5*dpr,T+ph);
   if(psd>0){let bi=0;for(let i=0;i<s.skin.length;i++)if(s.skin[i]===psd){bi=i;break;}
-    const ix=bi%NBX,iy=(bi/NBX)|0;x.strokeStyle='#fff';x.lineWidth=1.5*dpr;x.beginPath();x.arc(L+(ix+.5)*cw,T+(NBY-.5-iy)*ch,5*dpr,0,Math.PI*2);x.stroke();}
+    const ix=bi%NBX,iy=(bi/NBX)|0;x.strokeStyle=css('--fg');x.lineWidth=1.5*dpr;x.beginPath();x.arc(L+(ix+.5)*cw,T+(NBY-.5-iy)*ch,5*dpr,0,Math.PI*2);x.stroke();}
   $('#skinLeg').textContent=`Pele desdobrada à volta do ${({neuro:'crânio',abdo:'abdómen'})[S.mode]||'tórax'}; escala de 0 a ${fmtG(top)}, círculo no pico. A zona clara é a entrada do feixe atual. Níveis de alerta habituais (NCRP 168): PSD 2 e 3 Gy, Ka,r 3 e 5 Gy, PKA 300 e 500 Gy·cm², fluoroscopia 30 e 60 min.`;
 }
 /* sala: dispersão, operador e proteções */
@@ -1731,9 +1748,9 @@ const scN=96,scCv=document.createElement('canvas');scCv.width=scCv.height=scN;co
 const scTex=new THREE.CanvasTexture(scCv);
 const SC_SIZE=72,SC_X=-8,SC_Y=-10;
 const scPlane=new THREE.Mesh(new THREE.PlaneGeometry(SC_SIZE,SC_SIZE),new THREE.MeshBasicMaterial({map:scTex,transparent:true,depthWrite:false}));
-scPlane.position.set(SC_X,SC_Y,-25.85);room.add(scPlane);
+scPlane.position.set(SC_X,SC_Y,-25.9);room.add(scPlane);
 const opGroup=new THREE.Group();room.add(opGroup);opGroup.scale.setScalar(RK);
-const scrubMat=new THREE.MeshStandardMaterial({color:0x4f7d8c,roughness:.8});
+const scrubMat=new THREE.MeshStandardMaterial({color:0x4a7357,roughness:.85});
 const opSkin=new THREE.MeshStandardMaterial({color:0xc9a48c,roughness:.7});
 const leadMat=new THREE.MeshStandardMaterial({color:0x2c3742,roughness:.45,metalness:.15});
 const shoeMat=new THREE.MeshStandardMaterial({color:0x1d2228,roughness:.6});
@@ -1827,7 +1844,7 @@ function setMode(m,noHash){
   ISO=isoFor(m);setFluoro(false);DGk='';
   applyBones();
   $('#mode').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===m)));
-  $('#brandM').textContent=T.brand;$('#sub').textContent=T.sub;$('#h3d').textContent=T.h3d;$('#t-skel').textContent=T.skel;
+  $('#brandM').textContent=T.brand;$('#sub').textContent=T.sub;$('#sub').title=T.sub;$('#h3d').textContent=T.h3d;$('#t-skel').textContent=T.skel;
   $('#segSub').textContent=T.segSub;$('#hint').textContent=T.hint;
   $('#t-see').hidden=!(m==='cardio'||m==='tavi');$('#t-dsa').hidden=!hasDSA();$('#footC').hidden=m!=='cardio';$('#footN').hidden=!N;$('#footT').hidden=m!=='tavi';
   sRot.value=Math.round(S.lao);sAng.value=Math.round(S.cra);
@@ -1874,6 +1891,8 @@ window.addEventListener('keydown',e=>{
 });
 const _applyPreset=applyPreset;
 
+{const rd=()=>{dirty=true;if(M){drawMap();renderDose();}};try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rd);}catch(e){}
+ try{new MutationObserver(rd).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});}catch(e){}}
 /* ---------- ciclo ---------- */
 function resize(){
   const w=stage.clientWidth,h=stage.clientHeight;if(w&&h){R3.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
@@ -1892,17 +1911,7 @@ function frame(now){
   else{rctl.update();RR.render(room,rcam);updateRoomLabels();}
   if(cine||dirty){drawAngio(now);dirty=false;}
 }
-function applyTheme(t){
-  if(t==='azul')document.documentElement.dataset.theme='azul';else delete document.documentElement.dataset.theme;
-  try{localStorage.setItem('tema',t)}catch(e){}
-  const c=css('--accent');beamCol.set(c);
-  [srcDot,beamLines,beamFill,detPlane,detFrame,detFace,beam,tube.userData.win].forEach(o=>o.material.color.set(c));
-  const ic=document.querySelector('link[rel=icon]');if(ic)ic.href=ic.href.replace(/fill='%23[0-9a-f]{6}'/,"fill='%23"+c.replace('#','')+"'");
-  $('#themeBtn').setAttribute('aria-pressed',String(t==='azul'));
-  styleVessels();drawMap();dirty=true;}
-$('#themeBtn').addEventListener('click',()=>applyTheme(document.documentElement.dataset.theme==='azul'?'ambar':'azul'));
 setMode(modeFromHash()||'cardio',true);applyDoseVis();
-applyTheme(document.documentElement.dataset.theme==='azul'?'azul':'ambar');
 setView(store.get('view')==='sala'?'sala':'3d');setTab(['arco','seg','dose'].includes(store.get('tab'))?store.get('tab'):'arco');
 if(!store.get('seenHelp'))showHelp(true);
 resize();
