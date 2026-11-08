@@ -1251,8 +1251,8 @@ const RK0=0.27;
 const roomEl=$('#room');
 const RR=new THREE.WebGLRenderer({antialias:true,alpha:true});RR.setPixelRatio(Math.min(window.devicePixelRatio||1,2));roomEl.prepend(RR.domElement);
 const room=new THREE.Scene();
-const rcam=new THREE.PerspectiveCamera(34,4/3,1,400);rcam.up.set(0,0,1);rcam.position.set(74,-74,66);
-const rctl=new THREE.OrbitControls(rcam,RR.domElement);rctl.target.set(-5,-8,-10);rctl.enableDamping=true;rctl.enablePan=false;rctl.minDistance=25;rctl.maxDistance=130;rctl.update();
+const rcam=new THREE.PerspectiveCamera(34,4/3,1,400);rcam.up.set(0,0,1);rcam.position.set(96,-92,70);
+const rctl=new THREE.OrbitControls(rcam,RR.domElement);rctl.target.set(-2,2,-9);rctl.enableDamping=true;rctl.enablePan=false;rctl.minDistance=25;rctl.maxDistance=190;rctl.update();
 room.add(new THREE.HemisphereLight(0xeef4ff,0x1a2230,.8));
 {const l=new THREE.DirectionalLight(0xffffff,.7);l.position.set(10,-20,30);room.add(l);}
 const patient=new THREE.Group();room.add(patient);patient.scale.setScalar(RK0);
@@ -1277,9 +1277,32 @@ for(const s_ of[-1,1]){limb(ptArms,v3(s_*18.5,22,-6.5),v3(s_*20.5,-2,-6.8),4.6,4
   const hd=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),skinMat);hd.scale.set(2.4,5,3.0);hd.position.set(s_*19.6,-32.5,-7.6);ptArms.add(hd);
   limb(patient,v3(s_*9.5,-52,-4.5),v3(s_*10,-92,-6),8,5.6,skinMat);limb(patient,v3(s_*10,-92,-6),v3(s_*10,-130,-7.6),5.2,3.6,skinMat);
   limb(patient,v3(s_*10,-133,-7.4),v3(s_*10,-136,5),3.6,3.0,skinMat);}
-const tableMat=new THREE.MeshStandardMaterial({color:0x2e3b4c,roughness:.7});
-{const tb=new THREE.Mesh(new THREE.BoxGeometry(52,215,4),tableMat);tb.position.set(0,-45,-13.2);patient.add(tb);
- const ped=new THREE.Mesh(new THREE.BoxGeometry(30,34,90),tableMat);ped.position.set(0,-118,-60);patient.add(ped);}
+/* peças de equipamento: caixas com cantos arredondados e materiais de "plástico médico" */
+function rrShape(w,h,r){const s=new THREE.Shape(),x=-w/2,y=-h/2;r=Math.max(.01,Math.min(r,w/2-.01,h/2-.01));
+  s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.quadraticCurveTo(x+w,y,x+w,y+r);s.lineTo(x+w,y+h-r);s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  s.lineTo(x+r,y+h);s.quadraticCurveTo(x,y+h,x,y+h-r);s.lineTo(x,y+r);s.quadraticCurveTo(x,y,x+r,y);return s;}
+function rbox(w,h,d,r=2,b){b=b??Math.min(r,d/3,1.5);
+  const g=new THREE.ExtrudeGeometry(rrShape(w-2*b,h-2*b,r-b),{depth:Math.max(.01,d-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:6});
+  g.center();return g;}
+// plano da forma (X,Y) -> (y,z) do mundo e extrusão (Z) -> x
+const _perm=new THREE.Matrix4().set(0,0,1,0, 1,0,0,0, 0,1,0,0, 0,0,0,1);
+function extrudeYZ(shape,width,b,seg=48){const g=new THREE.ExtrudeGeometry(shape,{depth:Math.max(.01,width-2*b),bevelEnabled:b>0,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:seg});
+  g.translate(0,0,-(width-2*b)/2);g.applyMatrix4(_perm);return g;}
+const eqW=new THREE.MeshStandardMaterial({color:0xe8ebee,roughness:.38,metalness:.05});
+const eqG=new THREE.MeshStandardMaterial({color:0x9aa4b0,roughness:.45,metalness:.25});
+const eqD=new THREE.MeshStandardMaterial({color:0x2a313a,roughness:.55,metalness:.1});
+const eqB=new THREE.MeshStandardMaterial({color:0x3f86d8,roughness:.4,emissive:0x1d4f8f,emissiveIntensity:.35});
+const eqM=(geo,mat,x,y,z,grp)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);grp.add(m);return m;};
+/* mesa: tampo em carbono, colchão, calhas laterais e pedestal com coluna de elevação (cm, referencial do doente) */
+{const padMat=new THREE.MeshStandardMaterial({color:0x4d6f9a,roughness:.8});
+ const carbon=new THREE.MeshStandardMaterial({color:0x252b32,roughness:.35,metalness:.2});
+ eqM(rbox(50,215,2.6,4),carbon,0,-45,-15.4,patient);
+ eqM(rbox(47,204,3.4,4,1.4),padMat,0,-41,-12.8,patient);
+ for(const s_ of[-1,1])eqM(rbox(2.2,118,3.2,.9),eqG,s_*26,-92,-15.6,patient);
+ eqM(rbox(40,74,11,4),eqW,0,-116,-22.5,patient);
+ eqM(rbox(30,40,66,6),eqW,0,-120,-61,patient);
+ eqM(rbox(32.5,42.5,5,2),eqD,0,-120,-92,patient);
+ eqM(rbox(56,84,8,8),eqW,0,-122,-100.5,patient);}
 const heartDot=new THREE.Mesh(new THREE.SphereGeometry(5,20,14),organMat);heartDot.scale.set(1.1,1,.9);heartDot.position.set(2,-1,1.5);patient.add(heartDot);
 const brainDot=new THREE.Mesh(new THREE.SphereGeometry(6,20,14),organMat);brainDot.scale.set(1,1.1,1.1);brainDot.position.set(0,43,-1);patient.add(brainDot);
 const abdoDot=new THREE.Group();patient.add(abdoDot);
@@ -1289,37 +1312,62 @@ function isoBody(){const m=S.mode;if(m==='neuro')return v3(ISO.x,ISO.y-SKC.y+42,
 function placePatient(){const ib=isoBody(),h=HAB[S.T.hab];patient.position.set(-ib.x*RK0,-ib.y*RK0,(-ib.z+S.T.table)*RK0);
   ptTorso.scale.set(h,1,h);ptArms.scale.set(h,1,1);ptTorso.position.z=-11;
   heartDot.visible=S.mode==='cardio'||S.mode==='tavi';brainDot.visible=S.mode==='neuro';abdoDot.visible=S.mode==='abdo';}
-{const fl=new THREE.Mesh(new THREE.PlaneGeometry(140,140),new THREE.MeshStandardMaterial({color:0x111a26,roughness:1}));fl.position.set(0,-10,-26.05);room.add(fl);
- const grid=new THREE.GridHelper(140,28,0x243449,0x1a2738);grid.rotation.x=Math.PI/2;grid.position.set(0,-10,-26.0);room.add(grid);}
-const armMat=new THREE.MeshStandardMaterial({color:0xd5d9de,roughness:.45,metalness:.15});
-const cGroup=new THREE.Group();room.add(cGroup);
-const ARC=10;
-const arc=new THREE.Mesh(new THREE.TorusGeometry(ARC,.5,12,64,Math.PI),armMat);cGroup.add(arc);
-const det=new THREE.Mesh(new THREE.BoxGeometry(4.6,4.6,1.2),new THREE.MeshStandardMaterial({color:0x3a4656,roughness:.5}));cGroup.add(det);
-const detFace=new THREE.Mesh(new THREE.PlaneGeometry(4,4),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.5}));cGroup.add(detFace);
-/* ampola: corpo cilíndrico deitado (eixo perpendicular ao arco) + colimador virado ao isocentro; y local = direção do feixe */
-const tube=new THREE.Group();cGroup.add(tube);
-{const capMat=new THREE.MeshStandardMaterial({color:0x8e98a3,roughness:.55,metalness:.2});
- const colMat=new THREE.MeshStandardMaterial({color:0x39424d,roughness:.5});
- const hous=new THREE.Mesh(new THREE.CylinderGeometry(1.7,1.7,5.4,28),armMat);hous.rotation.z=Math.PI/2;hous.position.y=-.4;tube.add(hous);
- for(const s_ of[-1,1]){const cap=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,.5,28),capMat);cap.rotation.z=Math.PI/2;cap.position.set(s_*2.75,-.4,0);tube.add(cap);}
- const neck=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.1,.8,20),capMat);neck.position.y=1.5;tube.add(neck);
- const coll=new THREE.Mesh(new THREE.BoxGeometry(3,1.5,3),colMat);coll.position.y=2.6;tube.add(coll);
- const win=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.6),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.5,side:THREE.DoubleSide}));win.rotation.x=-Math.PI/2;win.position.y=3.36;tube.add(win);}
-const beam=new THREE.Mesh(new THREE.ConeGeometry(2.3,15.6,24,1,true),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.1,side:THREE.DoubleSide,depthWrite:false}));cGroup.add(beam);
-const holder=new THREE.Mesh(new THREE.BoxGeometry(1.6,5.5,1.6),new THREE.MeshStandardMaterial({color:0x9aa6b4,roughness:.6}));holder.position.set(0,ARC+2.6,0);room.add(holder);
-const col=new THREE.Mesh(new THREE.BoxGeometry(2.4,2.4,26),new THREE.MeshStandardMaterial({color:0x7a8796,roughness:.6}));col.position.set(0,ARC+5.4,-13);room.add(col);
-const _m=new THREE.Matrix4();
+{const fl=new THREE.Mesh(new THREE.PlaneGeometry(170,170),new THREE.MeshStandardMaterial({color:0x111a26,roughness:1}));fl.position.set(0,0,-26.05);room.add(fl);
+ const grid=new THREE.GridHelper(170,34,0x243449,0x1a2738);grid.rotation.x=Math.PI/2;grid.position.set(0,0,-26.0);room.add(grid);}
+/* angiógrafo de chão (cm, isocentro na origem): base giratória e braço em L do lado da cabeça,
+   carro que roda em torno do eixo longitudinal (LAO/RAO) e arco em C que desliza no carro (CRA/CAU).
+   Ampola em baixo (foco a SOD do isocentro), detetor plano em cima numa calha que acompanha o SID. */
+const carm=new THREE.Group();carm.scale.setScalar(RK0);room.add(carm);
+const RC=80, FLZ=-26/RK0;
+// base e braço em L (fixos)
+eqM(rbox(78,100,10,12),eqW,0,146,FLZ+5,carm);
+{const tt=eqM(new THREE.CylinderGeometry(36,38,5,48),eqG,0,140,FLZ+12.5,carm);tt.rotation.x=Math.PI/2;
+ const ring=eqM(new THREE.TorusGeometry(37,.9,8,64),eqB,0,140,FLZ+15,carm);
+ const s=new THREE.Shape();
+ s.moveTo(124,FLZ+14);s.lineTo(164,FLZ+14);s.quadraticCurveTo(172,-40,156,14);s.quadraticCurveTo(150,34,132,34);
+ s.lineTo(122,34);s.quadraticCurveTo(110,34,110,22);s.lineTo(110,-20);s.quadraticCurveTo(110,-36,120,-46);s.quadraticCurveTo(124,-52,124,-62);s.lineTo(124,FLZ+14);
+ eqM(extrudeYZ(s,46,4,24),eqW,0,0,0,carm);
+ const st=new THREE.Shape();st.moveTo(166,FLZ+16);st.quadraticCurveTo(173,-40,158,12);st.lineTo(156.5,11);st.quadraticCurveTo(171,-40,164.5,FLZ+16);
+ eqM(extrudeYZ(st,46.6,0),eqB,0,0,0,carm);}
+// rotação LAO/RAO
+const lGroup=new THREE.Group();carm.add(lGroup);
+{const drum=eqM(new THREE.CylinderGeometry(25,25,14,48),eqG,0,104,0,lGroup);
+ const rg=eqM(new THREE.TorusGeometry(25.2,.9,8,64),eqB,0,97.5,0,lGroup);rg.rotation.x=Math.PI/2;
+ eqM(rbox(40,18,70,7),eqW,0,92,0,lGroup);
+ for(const s_ of[-1,1])eqM(rbox(5,24,62,2),eqG,s_*14,84,0,lGroup);}
+// rotação CRA/CAU (o arco desliza no carro)
+const oGroup=new THREE.Group();lGroup.add(oGroup);
+function arcGeo(r0,r1,a0,a1,width,b){const s=new THREE.Shape();r0+=b;r1-=b;
+  s.moveTo(r1*Math.cos(a0),r1*Math.sin(a0));s.absarc(0,0,r1,a0,a1,false);s.lineTo(r0*Math.cos(a1),r0*Math.sin(a1));s.absarc(0,0,r0,a1,a0,true);
+  return extrudeYZ(s,width,b,96);}
+const H=Math.PI/2;
+eqM(arcGeo(RC-7,RC+7,-H,H,22,3),eqW,0,0,0,oGroup);
+eqM(arcGeo(RC-8.6,RC-6,-H*.93,H*.8,9,.6),eqD,0,0,0,oGroup);
+eqM(arcGeo(RC+1.6,RC+3.2,-H*.92,H*.92,22.5,0),eqB,0,0,0,oGroup);
+// ampola: cúpula com tampas laterais e colimador virado ao isocentro (feixe segundo +z local)
+const tube=new THREE.Group();tube.position.set(0,0,-SOD);oGroup.add(tube);
+eqM(rbox(32,36,25,9),eqW,0,4,-6,tube);
+for(const s_ of[-1,1]){const c=eqM(new THREE.CylinderGeometry(10,10,2.4,32),eqG,s_*16.6,2,-6,tube);c.rotation.z=H;}
+eqM(rbox(22,22,9,3),eqD,0,0,11,tube);
+eqM(new THREE.PlaneGeometry(12,12),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.55,side:THREE.DoubleSide}),0,0,15.6,tube);
+// detetor plano numa calha vertical presa à ponta superior do arco
+eqM(rbox(16,12,46,3),eqG,0,29,52,oGroup);
+const det=new THREE.Group();oGroup.add(det);
+eqM(rbox(46,42,11,4),eqW,0,0,5.5,det);
+eqM(rbox(43,39,1.4,1,.4),eqD,0,0,.2,det);
+eqM(rbox(18,16,12,3),eqG,0,20,10,det);
+{const f=eqM(new THREE.PlaneGeometry(38,34),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.45,side:THREE.DoubleSide}),0,0,-.6,det);}
+const beam=new THREE.Mesh(new THREE.ConeGeometry(1,1,32,1,true),new THREE.MeshBasicMaterial({color:0xf0ad32,transparent:true,opacity:.1,side:THREE.DoubleSide,depthWrite:false}));
+beam.rotation.x=-H;oGroup.add(beam);
 function placeArc(){
-  const B=basis(S.lao,S.cra),d=B.d,u=B.u,r=B.r;
-  _m.makeBasis(d,u,new V3().crossVectors(d,u));arc.setRotationFromMatrix(_m);
-  _m.makeBasis(r,u,d);det.setRotationFromMatrix(_m);detFace.setRotationFromMatrix(_m);
-  const dd=4.6+(S.T.sid-90)/30*4.6;det.position.copy(d).multiplyScalar(dd);detFace.position.copy(d).multiplyScalar(dd-0.65);
+  lGroup.rotation.y=S.lao*DEG;oGroup.rotation.x=-S.cra*DEG;
+  const sid=S.T.sid;det.position.z=sid-SOD;
+  const rb=((TECH[S.mode]&&TECH[S.mode].fov)||20)/2*(S.T.col/100);
+  beam.scale.set(rb,sid,rb);beam.position.z=sid/2-SOD;
   placePatient();
-  _m.makeBasis(r,d,new V3().crossVectors(r,d));tube.setRotationFromMatrix(_m);tube.position.copy(d).multiplyScalar(-(ARC-1.3));
-  const nd=d.clone().negate();_m.makeBasis(r,nd,new V3().crossVectors(r,nd));beam.setRotationFromMatrix(_m);beam.position.copy(d).multiplyScalar(0.2);
 }
-const rlb=$('#rlbls');const rlabels=[['Detetor',()=>det.position],['Ampola',()=>tube.position],['Operador',()=>S.dose?opHead.getWorldPosition(new V3()).add(new V3(0,0,1.5)):null]].map(([t,f])=>{const e=document.createElement('div');e.className='lbl3 N';e.textContent=t;rlb.appendChild(e);return {e,f};});
+const _wp=o=>o.getWorldPosition(new V3());
+const rlb=$('#rlbls');const rlabels=[['Detetor',()=>_wp(det)],['Ampola',()=>_wp(tube)],['Operador',()=>S.dose?opHead.getWorldPosition(new V3()).add(new V3(0,0,1.5)):null]].map(([t,f])=>{const e=document.createElement('div');e.className='lbl3 N';e.textContent=t;rlb.appendChild(e);return {e,f};});
 function updateRoomLabels(){const w=roomEl.clientWidth,h=roomEl.clientHeight;rlabels.forEach(o=>{const q=o.f();o.e.hidden=!q;if(!q)return;_p.copy(q).project(rcam);o.e.style.left=((_p.x+1)/2*w)+'px';o.e.style.top=((1-_p.y)/2*h-16)+'px';});}
 
 /* ---------- angiograma ---------- */
