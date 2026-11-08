@@ -1960,7 +1960,7 @@ function frame(now){
   if(cine||dirty){drawAngio(now);dirty=false;}
 }
 setMode(modeFromHash()||'cardio',true);applyDoseVis();
-setView(store.get('view')==='sala'?'sala':'3d');setTab(['arco','seg','dose'].includes(store.get('tab'))?store.get('tab'):'arco');
+setView('sala');setTab(['arco','seg','dose'].includes(store.get('tab'))?store.get('tab'):'arco');
 if(!store.get('seenHelp'))showHelp(true);
 resize();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{dirty=true;drawMap();});
